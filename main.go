@@ -15,6 +15,7 @@ import (
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/steps-xcode-archive/utils"
+	"github.com/bitrise-steplib/steps-xcode-archive-for-simulator/helper"
 	"github.com/bitrise-tools/go-steputils/stepconf"
 	"github.com/bitrise-tools/go-xcode/simulator"
 	"github.com/bitrise-tools/go-xcode/xcodebuild"
@@ -66,6 +67,11 @@ func main() {
 	log.SetEnableDebugLog(cfg.VerboseLog)
 
 	log.Infof("step determined configs:")
+
+	_, err := helper.Ruby(cfg.ProjectPath, cfg.ArtifactName)
+	if err != nil {
+		failf("Ruby", err)
+	}
 
 	// Detect Xcode major version
 	xcodebuildVersion, err := utils.XcodeBuildVersion()

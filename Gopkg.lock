@@ -7,6 +7,7 @@
   packages = [
     "colorstring",
     "command",
+    "command/rubyscript",
     "errorutil",
     "fileutil",
     "log",
@@ -37,8 +38,10 @@
   packages = [
     "certificateutil",
     "exportoptions",
+    "models",
     "plistutil",
     "profileutil",
+    "simulator",
     "xcodebuild",
     "xcpretty"
   ]
@@ -83,6 +86,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e755a215d912d69a3c17d53dd9452beedbc15d01acf1fe96e55e7260b434ad0d"
+  inputs-digest = "5ae5a67487ea58b994728a4e1a5be7072e073cce95dff995492a3eaca481cd2e"
   solver-name = "gps-cdcl"
   solver-version = 1
