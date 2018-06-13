@@ -32,15 +32,59 @@ inputs:
     opts:
       title: "Project (or Workspace) path"
       summary: ""
-      description: |-
-        A `.xcodeproj` or `.xcworkspace` path.
+      description: A `.xcodeproj` or `.xcworkspace` path.
       is_required: true
   - scheme: $BITRISE_SCHEME
     opts:
       title: "Scheme name"
       summary: ""
+      description: The Scheme to use.
+      is_required: true
+  - simulator_device: iPhone 6s Plus
+    opts:
+      title: "Device"
       description: |-
-        The Scheme to use.
+        Set it as it is shown in Xcode's device selection dropdown UI.
+
+        A couple of examples (the
+        actual available options depend on which versions
+        are installed):
+
+        * iPhone 6
+        * iPhone 6 Plus
+        * iPad
+        * iPad Air
+        * Apple TV 1080p (don't forget to set the platform to `tvOS Simulator` to use this option!)
+      is_required: true
+  - simulator_os_version: latest
+    opts:
+      title: "OS version"
+      description: |-
+        Set it as it is shown in
+        Xcode's device selection dropdown UI.
+
+        A couple of format examples (the
+        actual available options depend on which versions
+        are installed):
+
+        * 8.4
+        * latest
+      is_required: true
+  - simulator_platform: iOS
+    opts:
+      title: Platform
+      description: |-
+        Set it as it is shown in Xcode's device selection dropdown UI.
+
+        A couple of examples (the
+        actual available options depend on which versions
+        are installed):
+
+        * iOS Simulator
+        * tvOS Simulator
+      value_options:
+      - iOS
+      - tvOS
       is_required: true
   - configuration:
     opts:
