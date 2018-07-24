@@ -253,6 +253,9 @@ func main() {
 			failf("Failed to export the artifacts, error: %s", err)
 		}
 	}
+
+	fmt.Println()
+	log.Donef("You can find the exported artifacts in: %s", absOutputDir)
 }
 
 // targetBuildDir returns the target's TARGET_BUILD_DIR path for the provided sdk (e.g iossimulator)
@@ -324,7 +327,7 @@ func exportArtifacts(targets []xcodeproj.Target, mainTarget xcodeproj.Target, pr
 			}
 		}
 
-		log.Donef(target.Name + ":")
+		log.Donef(target.Name + "...")
 		buildDir, err := targetBuildDir(projectPath, target.Name, configuration, simulatorName, XcodebuildOptions)
 		if err != nil {
 			return fmt.Errorf("failed to get project's build target dir, error: %s", err)
