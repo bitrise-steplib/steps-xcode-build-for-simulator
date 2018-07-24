@@ -334,7 +334,7 @@ func exportArtifacts(targets []xcodeproj.Target, mainTarget xcodeproj.Target, pr
 			}
 		}
 
-		log.Warnf(target.Name + ":")
+		log.Donef(target.Name + ":")
 		buildDir, err := targetBuildDir(projectPath, target.Name, configuration, simulatorName, XcodebuildOptions)
 		if err != nil {
 			return fmt.Errorf("failed to get project's build target dir, error: %s", err)
