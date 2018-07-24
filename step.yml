@@ -1,9 +1,10 @@
-title: |-
-  Xcode Archive for Simulator
-summary: |
-  Todo
+title: Xcode build for simulator
+summary: Runs Xcode Build command for simulators.
 description: |
-  Todo
+  Runs Xcode Build command for simulators
+  for iOS, tvOS or watchOS.
+
+  You can share it, run it on simulator or upload it to Appetize.io.
 website: https://github.com/bitrise-steplib/steps-xcode-archive-for-simulator
 source_code_url: https://github.com/bitrise-steplib/steps-xcode-archive-for-simulator
 support_url: https://github.com/bitrise-steplib/steps-xcode-archive-for-simulator/issues
@@ -18,6 +19,8 @@ type_tags:
   - build
 
 deps:
+  check_only:
+  - name: xcode
   brew:
   - name: go
   apt_get:
@@ -30,19 +33,20 @@ toolkit:
 inputs:
   - project_path: $BITRISE_PROJECT_PATH
     opts:
-      title: "Project (or Workspace) path"
-      summary: ""
-      description: A `.xcodeproj` or `.xcworkspace` path.
-      is_required: true
+      title: Project (or Workspace) path
+      summary: "A `.xcodeproj` or `.xcworkspace` path."
+      description: "A `.xcodeproj` or `.xcworkspace` path."
+      is_required: "true"
   - scheme: $BITRISE_SCHEME
     opts:
-      title: "Scheme name"
-      summary: ""
-      description: The Scheme to use.
-      is_required: true
+      title: Scheme name
+      summary: "The Scheme to use."
+      description: "The Scheme to use."
+      is_required: "true"
   - simulator_device: iPhone 6s Plus
     opts:
-      title: "Device"
+      title: Simulator
+      summary: "Simulator name"
       description: |-
         Set it as it is shown in Xcode's device selection dropdown UI.
 
@@ -55,10 +59,10 @@ inputs:
         * iPad
         * iPad Air
         * Apple TV 1080p (don't forget to set the platform to `tvOS Simulator` to use this option!)
-      is_required: true
-  - simulator_os_version: latest
+      is_required: "true"
+  - simulator_os_version: "latest"
     opts:
-      title: "OS version"
+      title: OS version
       description: |-
         Set it as it is shown in
         Xcode's device selection dropdown UI.
@@ -67,9 +71,9 @@ inputs:
         actual available options depend on which versions
         are installed):
 
-        * 8.4
+        * "8.4"
         * latest
-      is_required: true
+      is_required: "true"
   - simulator_platform: iOS
     opts:
       title: Platform
@@ -85,11 +89,10 @@ inputs:
       value_options:
       - iOS
       - tvOS
-      is_required: true
+      is_required: "true"
   - configuration:
     opts:
       title: "Configuration name"
-      summary: ""
       description: |-
         (optional) The configuration to use. By default your Scheme
         defines which configuration (Debug, Release, ...) should be used,
@@ -99,12 +102,6 @@ inputs:
         in your Xcode Project**. If it does not, if you have a typo
         in the value of this input Xcode will simply use the Configuration
         specified by the Scheme and will silently ignore this parameter!
-  - artifact_name: ${scheme}
-    opts:
-      category: Debug
-      title: "Generated Artifact Name"
-      description: |-
-        This name will be used as basename for the generated .xcarchive, .ipa and .dSYM.zip files.
   - xcodebuild_options: ""
     opts:
       category: Debug
@@ -117,7 +114,7 @@ inputs:
   - workdir: $BITRISE_SOURCE_DIR
     opts:
       category: Debug
-      title: "Working directory"
+      title: Working directory
       summary: ""
       description: |-
         Working directory of the step.
@@ -125,19 +122,19 @@ inputs:
   - output_dir: $BITRISE_DEPLOY_DIR
     opts:
       category: Debug
-      title: "Output directory path"
+      title: Output directory path
       summary: ""
       description: |-
-        This directory will contain the generated .ipa and .dSYM.zip files.
-      is_required: true
+        This directory will contain the generated .app artifacts.
+      is_required: "true"
   - is_clean_build: "no"
     opts:
       category: Debug
-      title: "Do a clean Xcode build before the archive?"
+      title: Do a clean Xcode build before the archive?
       value_options:
         - "yes"
         - "no"
-      is_required: true
+      is_required: "true"
   - output_tool: xcpretty
     opts:
       category: Debug
@@ -148,39 +145,23 @@ inputs:
       value_options:
       - xcpretty
       - xcodebuild
-      is_required: true
-      is_expand: false
-  - verbose_log: "yes"
+      is_required: "true"
+      is_expand: "false"
+  - verbose_log: "no"
     opts:
       category: Debug
-      title: "Enable verbose logging?"
+      title: Enable verbose logging?
       description: Enable verbose logging?
-      is_required: true
+      is_required: "true"
       value_options:
       - "yes"
       - "no"
 
 outputs:
-  - BITRISE_IPA_PATH:
-    opts:
-      title: The created .ipa file's path
-  - BITRISE_APP_DIR_PATH:
-    opts:
-      title: The generated .app directory
-  - BITRISE_XCARCHIVE_PATH:
-    opts:
-      title: The created .xcarchive file's path
-  - BITRISE_XCARCHIVE_ZIP_PATH:
-    opts:
-      title: The created .xcarchive.zip file's path
-      description: |-
-         The created .xcarchive.zip file's path.
-
-         This environment will be exported only if, is_export_xcarchive_zip="yes"
   - BITRISE_XCODE_ARCHIVE_RAW_RESULT_TEXT_PATH:
     opts:
       title: The full, raw archive output file path
       description: |-
-        This is the path of the raw archive results log file.
+        This is the path of the raw build results log file.
 
-        If `output_tool=xcpretty` and the archive fails this log will contain the archive output.
+        If `output_tool=xcpretty` and the build fails this log will contain the build output.
