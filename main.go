@@ -219,7 +219,7 @@ func main() {
 	(value: %s)`, rawXcodebuildOutputLogPath)
 					}
 
-					failf("Archive failed, error: %s", err)
+					failf("Build failed, error: %s", err)
 				}
 			} else {
 				util.LogWithTimestamp(colorstring.Green, "$ %s", xcodeBuildCmd.PrintableCmd())
@@ -230,7 +230,7 @@ func main() {
 				buildRootCmd.SetStderr(os.Stderr)
 
 				if err := buildRootCmd.Run(); err != nil {
-					failf("Archive failed, error: %s", err)
+					failf("Build failed, error: %s", err)
 				}
 			}
 		}

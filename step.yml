@@ -5,9 +5,9 @@ description: |
   for iOS, tvOS or watchOS.
 
   You can share it, run it on simulator or upload it to Appetize.io.
-website: https://github.com/bitrise-steplib/steps-xcode-archive-for-simulator
-source_code_url: https://github.com/bitrise-steplib/steps-xcode-archive-for-simulator
-support_url: https://github.com/bitrise-steplib/steps-xcode-archive-for-simulator/issues
+website: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator
+source_code_url: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator
+support_url: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator/issues
 
 project_type_tags:
   - ios
@@ -28,7 +28,7 @@ deps:
 
 toolkit:
   go:
-    package_name: github.com/bitrise-steplib/steps-xcode-archive-for-simulator
+    package_name: github.com/bitrise-steplib/steps-xcode-build-for-simulator
 
 inputs:
   - project_path: $BITRISE_PROJECT_PATH
@@ -130,7 +130,7 @@ inputs:
   - is_clean_build: "no"
     opts:
       category: Debug
-      title: Do a clean Xcode build before the archive?
+      title: Do a clean Xcode build before the build?
       value_options:
         - "yes"
         - "no"
@@ -158,9 +158,9 @@ inputs:
       - "no"
 
 outputs:
-  - BITRISE_XCODE_ARCHIVE_RAW_RESULT_TEXT_PATH:
+  - BITRISE_XCODE_BUILD_RAW_RESULT_TEXT_PATH:
     opts:
-      title: The full, raw archive output file path
+      title: The full, raw build output file path
       description: |-
         This is the path of the raw build results log file.
 

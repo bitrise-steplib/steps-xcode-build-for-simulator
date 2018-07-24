@@ -1,4 +1,4 @@
-# Xcode Archive for Simulator
+# Xcode Build for Simulator
 
 Todo
 

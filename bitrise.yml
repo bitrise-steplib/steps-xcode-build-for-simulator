@@ -3,9 +3,9 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
   envs:
-  - BITRISE_STEP_ID: xcode-archive-for-simulator
+  - BITRISE_STEP_ID: xcode-build-for-simulator
   - BITRISE_STEP_VERSION: 0.9.0
-  - BITRISE_STEP_GIT_CLONE_URL: https://github.com/bitrise-steplib/steps-xcode-archive-for-simulator.git
+  - BITRISE_STEP_GIT_CLONE_URL: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator.git
   - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
 
   - ORIG_BITRISE_SOURCE_DIR: $BITRISE_SOURCE_DIR
