@@ -15,11 +15,13 @@ import (
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/steps-xcode-analyze/utils"
+	"github.com/bitrise-io/steps-xcode-test/pretty"
 	"github.com/bitrise-tools/go-steputils/stepconf"
 	"github.com/bitrise-tools/go-xcode/simulator"
 	"github.com/bitrise-tools/go-xcode/utility"
 	"github.com/bitrise-tools/go-xcode/xcodebuild"
 	"github.com/bitrise-tools/go-xcode/xcpretty"
+	"github.com/bitrise-tools/xcode-project/xcodeproj"
 	shellquote "github.com/kballard/go-shellquote"
 )
 
@@ -33,6 +35,7 @@ const (
 	minSupportedXcodeMajorVersion = 6
 	iOSSimName                    = "iphonesimulator"
 	tvOSSimName                   = "appletvsimulator"
+	watchOSSimName                = "watchsimulator"
 )
 
 const (
@@ -135,19 +138,11 @@ func main() {
 	}
 
 	// output files
-	appPath := filepath.Join(cfg.OutputDir, cfg.ArtifactName+".app")
 	rawXcodebuildOutputLogPath := filepath.Join(cfg.OutputDir, "raw-xcodebuild-output.log")
-
-	archiveZipPath := filepath.Join(cfg.OutputDir, cfg.ArtifactName+".xcarchive.zip")
-	ideDistributionLogsZipPath := filepath.Join(cfg.OutputDir, "xcodebuild.xcdistributionlogs.zip")
 
 	// cleanup
 	filesToCleanup := []string{
-		appPath,
 		rawXcodebuildOutputLogPath,
-
-		archiveZipPath,
-		ideDistributionLogsZipPath,
 	}
 
 	for _, pth := range filesToCleanup {
@@ -203,7 +198,6 @@ func main() {
 	}
 
 	// Clean build
-
 	if cfg.IsCleanBuild {
 		xcodeBuildCmd.SetCustomBuildAction("clean")
 	}
@@ -257,36 +251,18 @@ func main() {
 	}
 
 	fmt.Println()
-	log.Infof("Copy app from Derived Data to deploy dir")
+	log.Infof("Copy artifacts from Derived Data to output dir")
 
-	// Copy app from Derived Data to Deploy dir
-	{
-		simulatorName := iOSSimName
-		if cfg.SimulatorPlatform == "tvOS" {
-			simulatorName = tvOSSimName
-		}
-
-		buildDir, err := targetBuildDir(cfg.ProjectPath, cfg.Scheme, cfg.Configuration, simulatorName, cfg.XcodebuildOptions)
-		if err != nil {
-			failf("Failed to get project's build target dir", err)
-		}
-
-		deployDir := os.Getenv("BITRISE_DEPLOY_DIR")
-		source := filepath.Join(buildDir, cfg.ArtifactName+".app")
-		destination := filepath.Join(deployDir, cfg.ArtifactName+".app")
-
-		if err := copy(source, destination); err != nil {
-			failf("Failed to copy the generated app to the Deploy dir")
-		}
+	// Fetch project's targets from .xcodeproject
+	targets, mainTarget, err := buildedTargets(cfg.ProjectPath, cfg.Scheme)
+	if err != nil {
+		failf("Failed to fetch project's targets, error: %s", err)
 	}
 
-	// Ensure app exists
-	if exist, err := pathutil.IsPathExists(appPath); err != nil {
-		failf("Failed to check if archive exist, error: %s", err)
-	} else if !exist {
-		failf("No app generated at: %s", appPath)
+	// Export the artifact from the build dir to the output_dir
+	if err := exportArtifacts(targets, mainTarget, cfg.ProjectPath, cfg.Configuration, cfg.XcodebuildOptions, cfg.SimulatorPlatform); err != nil {
+		failf("Failed to export the artifacts, error: %s", err)
 	}
-
 }
 
 func failf(format string, v ...interface{}) {
@@ -309,7 +285,7 @@ func logWithTimestamp(coloringFunc ColoringFunc, format string, v ...interface{}
 	fmt.Println(messageWithTimeStamp)
 }
 
-func targetBuildDir(projectPath, scheme, configuration, sdk, buildOptions string) (string, error) {
+func targetBuildDir(projectPath, targetName, configuration, sdk, buildOptions string) (string, error) {
 	ext := filepath.Ext(projectPath)
 	isWorkspace := false
 
@@ -321,7 +297,7 @@ func targetBuildDir(projectPath, scheme, configuration, sdk, buildOptions string
 
 	xcodeBuildCmd := xcodebuild.NewCommandBuilder(projectPath, isWorkspace, xcodebuild.BuildAction)
 	xcodeBuildCmd.SetCustomBuildAction("-showBuildSettings")
-	xcodeBuildCmd.SetScheme(scheme)
+	xcodeBuildCmd.SetCustomOptions([]string{"-target", targetName})
 	xcodeBuildCmd.SetConfiguration(configuration)
 	xcodeBuildCmd.SetSDK(sdk)
 
@@ -360,4 +336,85 @@ func copy(source string, destination string) error {
 	log.Printf(copyCmd.PrintableCommandArgs())
 
 	return copyCmd.Run()
+}
+
+func exportArtifacts(targets []xcodeproj.Target, mainTarget xcodeproj.Target, projectPath, configuration, XcodebuildOptions, simulatorPlatform string) error {
+	for _, target := range targets {
+		simulatorName := iOSSimName
+
+		if target.ID != mainTarget.ID {
+			sdkRoot, err := target.BuildConfigurationList.BuildConfigurations[0].BuildSettings.Value("SDKROOT")
+			if err != nil {
+				continue
+			}
+
+			_, err = target.BuildConfigurationList.BuildConfigurations[0].BuildSettings.Value("ASSETCATALOG_COMPILER_APPICON_NAME")
+			if err != nil {
+				continue
+			}
+
+			if sdkRoot == "watchos" {
+				simulatorName = watchOSSimName
+			}
+		} else {
+			if simulatorPlatform == "tvOS" {
+				simulatorName = tvOSSimName
+			}
+		}
+
+		log.Warnf(target.Name + ":")
+		buildDir, err := targetBuildDir(projectPath, target.Name, configuration, simulatorName, XcodebuildOptions)
+		if err != nil {
+			return fmt.Errorf("failed to get project's build target dir, error: %s", err)
+		}
+
+		deployDir := os.Getenv("BITRISE_DEPLOY_DIR")
+		source := filepath.Join(buildDir, target.Name+".app")
+		destination := filepath.Join(deployDir, target.Name+".app")
+
+		if err := copy(source, destination); err != nil {
+			return fmt.Errorf("failed to copy the generated app to the Deploy dir")
+		}
+
+		fmt.Println()
+	}
+
+	return nil
+}
+
+func buildedTargets(projectPath, scheme string) ([]xcodeproj.Target, xcodeproj.Target, error) {
+	//
+	// Project targets
+	var targets []xcodeproj.Target
+	var mainTarget xcodeproj.Target
+	{
+		proj, err := xcodeproj.Open(projectPath)
+		if err != nil {
+			return nil, xcodeproj.Target{}, fmt.Errorf("Failed to open xcproj - (%s), error: %s", projectPath, err)
+		}
+
+		projTargets := proj.Proj.Targets
+		scheme, ok := proj.Scheme(scheme)
+		if !ok {
+			return nil, xcodeproj.Target{}, fmt.Errorf("Failed to found scheme (%s) in project", scheme)
+		}
+
+		blueIdent := scheme.BuildAction.BuildActionEntries[0].BuildableReference.BlueprintIdentifier
+
+		for _, p := range projTargets {
+			if p.ID == blueIdent {
+				mainTarget = p
+				targets = append(targets, mainTarget)
+			}
+		}
+		log.Debugf("Project's targets: %+v\n", pretty.Object(projTargets))
+		log.Debugf("Main target: %+v\n", pretty.Object(mainTarget))
+	}
+
+	// Main target's depenencies
+	for _, dep := range mainTarget.DependentTargets() {
+		targets = append(targets, dep)
+	}
+
+	return targets, mainTarget, nil
 }
