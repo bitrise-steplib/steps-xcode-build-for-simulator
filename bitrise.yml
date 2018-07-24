@@ -4,7 +4,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 app:
   envs:
   - BITRISE_STEP_ID: xcode-archive-for-simulator
-  - BITRISE_STEP_VERSION: "0.9.0"
+  - BITRISE_STEP_VERSION: 0.9.0
   - BITRISE_STEP_GIT_CLONE_URL: https://github.com/bitrise-steplib/steps-xcode-archive-for-simulator.git
   - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
 
@@ -14,11 +14,9 @@ workflows:
   test_objc:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-    # - COMMIT: "65cd120bf4459c2881cfe2b731395b4efc53855d"
     - BRANCH: master
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
-    # - XCODEBUILD_OPTIONS: 'CODE_SIGN_IDENTITY="iPhone Developer: Bitrise Bot"'
     - CONFIGURATION: "Debug"
     - OUTPUT_TOOL: xcodebuild
     - SIMULATOR_OS_VERSION: "11.4"
@@ -58,7 +56,6 @@ workflows:
     - COMMIT: "ab36ed563bbc3125118e9f27df91474822dc0d46"
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
-    # - XCODEBUILD_OPTIONS: 'CODE_SIGN_IDENTITY="iPhone Developer: Bitrise Bot"'
     - SIMULATOR_OS_VERSION: "latest"
     - OUTPUT_TOOL: xcpretty
     after_run:
@@ -112,14 +109,6 @@ workflows:
         is_always_run: true
         inputs:
         - content: |-
-            echo "-> BITRISE_IPA_PATH:           $BITRISE_IPA_PATH"
-            echo "-> BITRISE_DSYM_PATH:          $BITRISE_DSYM_PATH"
-            echo "-> BITRISE_XCARCHIVE_ZIP_PATH: $BITRISE_XCARCHIVE_ZIP_PATH"
-
-            echo "-> BITRISE_APP_DIR_PATH:               $BITRISE_APP_DIR_PATH"
-            echo "-> BITRISE_DSYM_DIR_PATH:              $BITRISE_DSYM_DIR_PATH"
-            echo "-> BITRISE_XCARCHIVE_PATH:             $BITRISE_XCARCHIVE_PATH"
-            echo "-> BITRISE_IDEDISTRIBUTION_LOGS_PATH:  $BITRISE_IDEDISTRIBUTION_LOGS_PATH"
             echo "-> BITRISE_XCODE_RAW_RESULT_TEXT_PATH: $BITRISE_XCODE_RAW_RESULT_TEXT_PATH"
 
   # ----------------------------------------------------------------

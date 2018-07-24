@@ -3,13 +3,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:674496f7bb0ea7e943862034e24c017f57406cd046bd1c45bc174c67d15788b1"
+  digest = "1:723e6aa132363f2383b4ad102ef504745ef410b262cc43e59f0d333cc0aff680"
   name = "github.com/bitrise-io/go-utils"
   packages = [
     "colorstring",
     "command",
     "command/rubycommand",
-    "command/rubyscript",
     "errorutil",
     "fileutil",
     "log",
@@ -101,7 +100,6 @@
   input-imports = [
     "github.com/bitrise-io/go-utils/colorstring",
     "github.com/bitrise-io/go-utils/command",
-    "github.com/bitrise-io/go-utils/command/rubyscript",
     "github.com/bitrise-io/go-utils/log",
     "github.com/bitrise-io/go-utils/pathutil",
     "github.com/bitrise-io/go-utils/stringutil",

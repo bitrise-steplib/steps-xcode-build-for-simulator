@@ -37,103 +37,105 @@ const (
 
 // Config ...
 type Config struct {
-	ProjectPath           string `env:"project_path,required"`
-	Scheme                string `env:"scheme,required"`
-	Configuration         string `env:"configuration"`
-	ArtifactName          string `env:"artifact_name"`
-	XcodebuildOptions     string `env:"xcodebuild_options"`
-	Workdir               string `env:"workdir"`
-	OutputDir             string `env:"output_dir,required"`
-	IsCleanBuild          bool   `env:"is_clean_build,opt[yes,no]"`
-	OutputTool            string `env:"output_tool,opt[xcpretty,xcodebuild]"`
-	ForceCodeSignIdentity string `env:"force_code_sign_identity"`
-	SimulatorDevice       string `env:"simulator_device,required"`
-	SimulatorOsVersion    string `env:"simulator_os_version,required"`
-	SimulatorPlatform     string `env:"simulator_platform,opt[iOS, tvOS]"`
-	VerboseLog            bool   `env:"verbose_log,required"`
+	ProjectPath        string `env:"project_path,required"`
+	Scheme             string `env:"scheme,required"`
+	Configuration      string `env:"configuration"`
+	ArtifactName       string `env:"artifact_name"`
+	XcodebuildOptions  string `env:"xcodebuild_options"`
+	Workdir            string `env:"workdir"`
+	OutputDir          string `env:"output_dir,required"`
+	IsCleanBuild       bool   `env:"is_clean_build,opt[yes,no]"`
+	OutputTool         string `env:"output_tool,opt[xcpretty,xcodebuild]"`
+	SimulatorDevice    string `env:"simulator_device,required"`
+	SimulatorOsVersion string `env:"simulator_os_version,required"`
+	SimulatorPlatform  string `env:"simulator_platform,opt[iOS, tvOS]"`
+	VerboseLog         bool   `env:"verbose_log,required"`
 }
 
 func main() {
+	//
+	// Config
 	var cfg Config
 	if err := stepconf.Parse(&cfg); err != nil {
 		failf("Issue with input: %s", err)
 	}
-
-	log.SetEnableDebugLog(cfg.VerboseLog)
 
 	stepconf.Print(cfg)
 	fmt.Println()
 
 	log.SetEnableDebugLog(cfg.VerboseLog)
 
-	log.Infof("Step determined configs:")
+	//
+	// Determined configs
+	{
+		log.Infof("Step determined configs:")
 
-	// Detect Xcode major version
-	xcodebuildVersion, err := utility.GetXcodeVersion()
-	if err != nil {
-		failf("Failed to determin xcode version, error: %s", err)
-	}
-	log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.Version, xcodebuildVersion.BuildVersion)
-
-	xcodeMajorVersion := xcodebuildVersion.MajorVersion
-	if xcodeMajorVersion < minSupportedXcodeMajorVersion {
-		failf("Invalid xcode major version (%d), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
-	}
-
-	// Detect xcpretty version
-	outputTool := cfg.OutputTool
-	if outputTool == "xcpretty" {
-		fmt.Println()
-		log.Infof("Checking if output tool (xcpretty) is installed")
-
-		installed, err := xcpretty.IsInstalled()
+		// Detect Xcode major version
+		xcodebuildVersion, err := utility.GetXcodeVersion()
 		if err != nil {
-			log.Warnf("Failed to check if xcpretty is installed, error: %s", err)
-			log.Printf("Switching to xcodebuild for output tool")
-			outputTool = "xcodebuild"
-		} else if !installed {
-			log.Warnf(`xcpretty is not installed`)
-			fmt.Println()
-			log.Printf("Installing xcpretty")
+			failf("Failed to determin xcode version, error: %s", err)
+		}
+		log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.Version, xcodebuildVersion.BuildVersion)
 
-			if err := xcpretty.Install(); err != nil {
-				log.Warnf("Failed to install xcpretty, error: %s", err)
+		xcodeMajorVersion := xcodebuildVersion.MajorVersion
+		if xcodeMajorVersion < minSupportedXcodeMajorVersion {
+			failf("Invalid xcode major version (%d), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
+		}
+
+		// Detect xcpretty version
+		outputTool := cfg.OutputTool
+		if outputTool == "xcpretty" {
+			fmt.Println()
+			log.Infof("Checking if output tool (xcpretty) is installed")
+
+			installed, err := xcpretty.IsInstalled()
+			if err != nil {
+				log.Warnf("Failed to check if xcpretty is installed, error: %s", err)
+				log.Printf("Switching to xcodebuild for output tool")
+				outputTool = "xcodebuild"
+			} else if !installed {
+				log.Warnf(`xcpretty is not installed`)
+				fmt.Println()
+				log.Printf("Installing xcpretty")
+
+				if err := xcpretty.Install(); err != nil {
+					log.Warnf("Failed to install xcpretty, error: %s", err)
+					log.Printf("Switching to xcodebuild for output tool")
+					outputTool = "xcodebuild"
+				}
+			}
+		}
+
+		if outputTool == "xcpretty" {
+			xcprettyVersion, err := xcpretty.Version()
+			if err != nil {
+				log.Warnf("Failed to determin xcpretty version, error: %s", err)
 				log.Printf("Switching to xcodebuild for output tool")
 				outputTool = "xcodebuild"
 			}
+			log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 		}
 	}
 
-	if outputTool == "xcpretty" {
-		xcprettyVersion, err := xcpretty.Version()
-		if err != nil {
-			log.Warnf("Failed to determin xcpretty version, error: %s", err)
-			log.Printf("Switching to xcodebuild for output tool")
-			outputTool = "xcodebuild"
-		}
-		log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
-	}
-
-	// abs out dir pth
+	// ABS out dir pth
 	absOutputDir, err := pathutil.AbsPath(cfg.OutputDir)
 	if err != nil {
 		failf("Failed to expand OutputDir (%s), error: %s", cfg.OutputDir, err)
 	}
 
-	cfg.OutputDir = absOutputDir
-
-	if exist, err := pathutil.IsPathExists(cfg.OutputDir); err != nil {
+	if exist, err := pathutil.IsPathExists(absOutputDir); err != nil {
 		failf("Failed to check if OutputDir exist, error: %s", err)
 	} else if !exist {
-		if err := os.MkdirAll(cfg.OutputDir, 0777); err != nil {
-			failf("Failed to create OutputDir (%s), error: %s", cfg.OutputDir, err)
+		if err := os.MkdirAll(absOutputDir, 0777); err != nil {
+			failf("Failed to create OutputDir (%s), error: %s", absOutputDir, err)
 		}
 	}
 
-	// output files
-	rawXcodebuildOutputLogPath := filepath.Join(cfg.OutputDir, "raw-xcodebuild-output.log")
+	// Output files
+	rawXcodebuildOutputLogPath := filepath.Join(absOutputDir, "raw-xcodebuild-output.log")
 
-	// cleanup
+	//
+	// Cleanup
 	{
 		filesToCleanup := []string{
 			rawXcodebuildOutputLogPath,
@@ -163,6 +165,7 @@ func main() {
 			failf("Project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
 		}
 
+		// Build for simulator command
 		xcodeBuildCmd := xcodebuild.NewCommandBuilder(cfg.ProjectPath, isWorkspace, xcodebuild.BuildAction)
 		xcodeBuildCmd.SetScheme(cfg.Scheme)
 		xcodeBuildCmd.SetConfiguration(cfg.Configuration)
@@ -171,27 +174,9 @@ func main() {
 		log.Infof("Simulator info")
 
 		// Simulator Destination
-		var simulatorID string
-		{
-			simulatorVersion := cfg.SimulatorOsVersion
-
-			if simulatorVersion == "latest" {
-				info, _, err := simulator.GetLatestSimulatorInfoAndVersion(cfg.SimulatorPlatform, cfg.SimulatorDevice)
-				if err != nil {
-					failf("Failed to get latest simulator info - error: %s", err)
-				}
-
-				simulatorID = info.ID
-				log.Printf("Latest simulator for %s = %s", cfg.SimulatorDevice, simulatorID)
-			} else {
-				info, err := simulator.GetSimulatorInfo((cfg.SimulatorPlatform + " " + cfg.SimulatorOsVersion), cfg.SimulatorDevice)
-				if err != nil {
-					failf("Failed to get simulator info (%s-%s) - error: %s", (cfg.SimulatorPlatform + cfg.SimulatorOsVersion), cfg.SimulatorDevice, err)
-				}
-
-				simulatorID = info.ID
-				log.Printf("Simulator for %s %s = %s", cfg.SimulatorDevice, cfg.SimulatorOsVersion, simulatorID)
-			}
+		simulatorID, err := simulatorDestinationID(cfg.SimulatorOsVersion, cfg.SimulatorPlatform, cfg.SimulatorDevice)
+		if err != nil {
+			failf("Failed to find simulator, error: %s", err)
 		}
 
 		// Set simulator destination and disable code signing for the build
@@ -251,11 +236,14 @@ func main() {
 		}
 	}
 
-	fmt.Println()
-	log.Infof("Copy artifacts from Derived Data to %s", cfg.OutputDir)
+	//
+	// Export artifacts
 	{
+		fmt.Println()
+		log.Infof("Copy artifacts from Derived Data to %s", absOutputDir)
+
 		// Fetch project's targets from .xcodeproject
-		targets, mainTarget, err := buildedTargets(cfg.ProjectPath, cfg.Scheme)
+		targets, mainTarget, err := schemeTargets(cfg.ProjectPath, cfg.Scheme)
 		if err != nil {
 			failf("Failed to fetch project's targets, error: %s", err)
 		}
@@ -267,6 +255,7 @@ func main() {
 	}
 }
 
+// targetBuildDir returns the target's TARGET_BUILD_DIR path for the provided sdk (e.g iossimulator)
 func targetBuildDir(projectPath, targetName, configuration, sdk, buildOptions string) (string, error) {
 	ext := filepath.Ext(projectPath)
 	isWorkspace := false
@@ -310,6 +299,7 @@ func targetBuildDir(projectPath, targetName, configuration, sdk, buildOptions st
 	return "", fmt.Errorf("could not find the project's target build dir")
 }
 
+// exportArtifacts exports the main target and it's .app dependencies.
 func exportArtifacts(targets []xcodeproj.Target, mainTarget xcodeproj.Target, projectPath, configuration, XcodebuildOptions, simulatorPlatform string) error {
 	for _, target := range targets {
 		simulatorName := iOSSimName
@@ -354,9 +344,8 @@ func exportArtifacts(targets []xcodeproj.Target, mainTarget xcodeproj.Target, pr
 	return nil
 }
 
-func buildedTargets(projectPath, scheme string) ([]xcodeproj.Target, xcodeproj.Target, error) {
-	//
-	// Project targets
+// schemeTargets return the main target and it's dependent .app targets for the provided scheme.
+func schemeTargets(projectPath, scheme string) ([]xcodeproj.Target, xcodeproj.Target, error) {
 	var targets []xcodeproj.Target
 	var mainTarget xcodeproj.Target
 	{
@@ -373,10 +362,12 @@ func buildedTargets(projectPath, scheme string) ([]xcodeproj.Target, xcodeproj.T
 
 		blueIdent := scheme.BuildAction.BuildActionEntries[0].BuildableReference.BlueprintIdentifier
 
-		for _, p := range projTargets {
-			if p.ID == blueIdent {
-				mainTarget = p
+		// Search for the main target
+		for _, t := range projTargets {
+			if t.ID == blueIdent {
+				mainTarget = t
 				targets = append(targets, mainTarget)
+				break
 			}
 		}
 		log.Debugf("Project's targets: %+v\n", pretty.Object(projTargets))
@@ -389,6 +380,30 @@ func buildedTargets(projectPath, scheme string) ([]xcodeproj.Target, xcodeproj.T
 	}
 
 	return targets, mainTarget, nil
+}
+
+// simulatorDestinationID return the simulator's ID for the selected device version.
+func simulatorDestinationID(simulatorOsVersion, simulatorPlatform, simulatorDevice string) (string, error) {
+	var simulatorID string
+
+	if simulatorOsVersion == "latest" {
+		info, _, err := simulator.GetLatestSimulatorInfoAndVersion(simulatorPlatform, simulatorDevice)
+		if err != nil {
+			return "", fmt.Errorf("failed to get latest simulator info - error: %s", err)
+		}
+
+		simulatorID = info.ID
+		log.Printf("Latest simulator for %s = %s", simulatorDevice, simulatorID)
+	} else {
+		info, err := simulator.GetSimulatorInfo((simulatorPlatform + " " + simulatorOsVersion), simulatorDevice)
+		if err != nil {
+			return "", fmt.Errorf("failed to get simulator info (%s-%s) - error: %s", (simulatorPlatform + simulatorOsVersion), simulatorDevice, err)
+		}
+
+		simulatorID = info.ID
+		log.Printf("Simulator for %s %s = %s", simulatorDevice, simulatorOsVersion, simulatorID)
+	}
+	return simulatorID, nil
 }
 
 func failf(format string, v ...interface{}) {
