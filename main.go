@@ -7,15 +7,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/bitrise-io/go-utils/colorstring"
-	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/steps-xcode-analyze/utils"
 	"github.com/bitrise-io/steps-xcode-test/pretty"
+	"github.com/bitrise-steplib/steps-xcode-archive-for-simulator/util"
 	"github.com/bitrise-tools/go-steputils/stepconf"
 	"github.com/bitrise-tools/go-xcode/simulator"
 	"github.com/bitrise-tools/go-xcode/utility"
@@ -24,12 +23,6 @@ import (
 	"github.com/bitrise-tools/xcode-project/xcodeproj"
 	shellquote "github.com/kballard/go-shellquote"
 )
-
-// xcodebuild build -project ./Test.xcodeproj -scheme Test -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 6,OS=11.4' -derivedDataPath ./ddata
-// xcodebuild -project Test.xcodeproj -configuration Debug -sdk iphonesimulator -showBuildSettings | grep TARGET_BUILD_DIR
-
-// xcodebuild build -project ios-simple-objc/ios-simple-objc.xcodeproj -scheme ios-simple-objc -destination "platform=iOS Simulator,name=iPhone 6,OS=11.4" "CODE_SIGN_IDENTITY=" "CODE_SIGNING_REQUIRED=NO"
-// xcodebuild build -project ./Test.xcodeproj -scheme Test -configuration Debug "CODE_SIGN_IDENTITY=" "CODE_SIGNING_REQUIRED=NO" PROVISIONING_PROFILE_SPECIFIER= -destination "platform=iOS Simulator,name=iPhone 6,OS=11.4" -derivedDataPath ./ddata
 
 const (
 	minSupportedXcodeMajorVersion = 6
@@ -141,148 +134,137 @@ func main() {
 	rawXcodebuildOutputLogPath := filepath.Join(cfg.OutputDir, "raw-xcodebuild-output.log")
 
 	// cleanup
-	filesToCleanup := []string{
-		rawXcodebuildOutputLogPath,
-	}
+	{
+		filesToCleanup := []string{
+			rawXcodebuildOutputLogPath,
+		}
 
-	for _, pth := range filesToCleanup {
-		if exist, err := pathutil.IsPathExists(pth); err != nil {
-			failf("Failed to check if path (%s) exist, error: %s", pth, err)
-		} else if exist {
-			if err := os.RemoveAll(pth); err != nil {
-				failf("Failed to remove path (%s), error: %s", pth, err)
+		for _, pth := range filesToCleanup {
+			if exist, err := pathutil.IsPathExists(pth); err != nil {
+				failf("Failed to check if path (%s) exist, error: %s", pth, err)
+			} else if exist {
+				if err := os.RemoveAll(pth); err != nil {
+					failf("Failed to remove path (%s), error: %s", pth, err)
+				}
 			}
 		}
 	}
 
 	//
 	// Create the app with Xcode Command Line tools
-	isWorkspace := false
-	ext := filepath.Ext(cfg.ProjectPath)
-	if ext == ".xcodeproj" {
-		isWorkspace = false
-	} else if ext == ".xcworkspace" {
-		isWorkspace = true
-	} else {
-		failf("Project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
-	}
-
-	xcodeBuildCmd := xcodebuild.NewCommandBuilder(cfg.ProjectPath, isWorkspace, xcodebuild.BuildAction)
-	xcodeBuildCmd.SetScheme(cfg.Scheme)
-	xcodeBuildCmd.SetConfiguration(cfg.Configuration)
-
-	fmt.Println()
-	log.Infof("Simulator info")
-
-	// Destination
 	{
-		simulatorVersion := cfg.SimulatorOsVersion
-
-		if simulatorVersion == "latest" {
-			info, _, err := simulator.GetLatestSimulatorInfoAndVersion(cfg.SimulatorPlatform, cfg.SimulatorDevice)
-			if err != nil {
-				failf("Failed to get latest simulator info - error: %s", err)
-			}
-
-			log.Printf("Latest simulator for %s = %s", cfg.SimulatorDevice, info.ID)
-			xcodeBuildCmd.SetCustomOptions([]string{"-destination", "id=" + info.ID, "PROVISIONING_PROFILE_SPECIFIER="})
+		isWorkspace := false
+		ext := filepath.Ext(cfg.ProjectPath)
+		if ext == ".xcodeproj" {
+			isWorkspace = false
+		} else if ext == ".xcworkspace" {
+			isWorkspace = true
 		} else {
-			info, err := simulator.GetSimulatorInfo((cfg.SimulatorPlatform + " " + cfg.SimulatorOsVersion), cfg.SimulatorDevice)
-			if err != nil {
-				failf("Failed to get simulator info (%s-%s) - error: %s", (cfg.SimulatorPlatform + cfg.SimulatorOsVersion), cfg.SimulatorDevice, err)
-			}
-
-			log.Printf("Simulator for %s %s = %s", cfg.SimulatorDevice, cfg.SimulatorOsVersion, info.ID)
-			xcodeBuildCmd.SetCustomOptions([]string{"-destination", "id=" + info.ID, "PROVISIONING_PROFILE_SPECIFIER="})
+			failf("Project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
 		}
-	}
 
-	// Clean build
-	if cfg.IsCleanBuild {
-		xcodeBuildCmd.SetCustomBuildAction("clean")
-	}
+		xcodeBuildCmd := xcodebuild.NewCommandBuilder(cfg.ProjectPath, isWorkspace, xcodebuild.BuildAction)
+		xcodeBuildCmd.SetScheme(cfg.Scheme)
+		xcodeBuildCmd.SetConfiguration(cfg.Configuration)
 
-	// XcodeBuild Options
-	if cfg.XcodebuildOptions != "" {
-		options, err := shellquote.Split(cfg.XcodebuildOptions)
-		if err != nil {
-			failf("Failed to shell split XcodebuildOptions (%s), error: %s", cfg.XcodebuildOptions)
-		}
-		xcodeBuildCmd.SetCustomOptions(options)
-	}
+		fmt.Println()
+		log.Infof("Simulator info")
 
-	fmt.Println()
-	log.Infof("Running build")
+		// Simulator Destination
+		var simulatorID string
+		{
+			simulatorVersion := cfg.SimulatorOsVersion
 
-	// Output tool
-	{
-		if cfg.OutputTool == "xcpretty" {
-			xcprettyCmd := xcpretty.New(xcodeBuildCmd)
-
-			logWithTimestamp(colorstring.Green, "$ %s", xcprettyCmd.PrintableCmd())
-			fmt.Println()
-
-			if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
-				log.Errorf("\nLast lines of the Xcode's build log:")
-				fmt.Println(stringutil.LastNLines(rawXcodebuildOut, 10))
-
-				if err := utils.ExportOutputFileContent(rawXcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
-					log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
-				} else {
-					log.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log is also available in the raw-xcodebuild-output.log
-	The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable
-	(value: %s)`, rawXcodebuildOutputLogPath)
+			if simulatorVersion == "latest" {
+				info, _, err := simulator.GetLatestSimulatorInfoAndVersion(cfg.SimulatorPlatform, cfg.SimulatorDevice)
+				if err != nil {
+					failf("Failed to get latest simulator info - error: %s", err)
 				}
 
-				failf("Archive failed, error: %s", err)
+				simulatorID = info.ID
+				log.Printf("Latest simulator for %s = %s", cfg.SimulatorDevice, simulatorID)
+			} else {
+				info, err := simulator.GetSimulatorInfo((cfg.SimulatorPlatform + " " + cfg.SimulatorOsVersion), cfg.SimulatorDevice)
+				if err != nil {
+					failf("Failed to get simulator info (%s-%s) - error: %s", (cfg.SimulatorPlatform + cfg.SimulatorOsVersion), cfg.SimulatorDevice, err)
+				}
+
+				simulatorID = info.ID
+				log.Printf("Simulator for %s %s = %s", cfg.SimulatorDevice, cfg.SimulatorOsVersion, simulatorID)
 			}
-		} else {
-			logWithTimestamp(colorstring.Green, "$ %s", xcodeBuildCmd.PrintableCmd())
-			fmt.Println()
+		}
 
-			buildRootCmd := xcodeBuildCmd.Command()
-			buildRootCmd.SetStdout(os.Stdout)
-			buildRootCmd.SetStderr(os.Stderr)
+		// Set simulator destination and disable code signing for the build
+		xcodeBuildCmd.SetCustomOptions([]string{"-destination", "id=" + simulatorID, "PROVISIONING_PROFILE_SPECIFIER="})
 
-			if err := buildRootCmd.Run(); err != nil {
-				failf("Archive failed, error: %s", err)
+		// Clean build
+		if cfg.IsCleanBuild {
+			xcodeBuildCmd.SetCustomBuildAction("clean")
+		}
+
+		// XcodeBuild Options
+		if cfg.XcodebuildOptions != "" {
+			options, err := shellquote.Split(cfg.XcodebuildOptions)
+			if err != nil {
+				failf("Failed to shell split XcodebuildOptions (%s), error: %s", cfg.XcodebuildOptions)
+			}
+			xcodeBuildCmd.SetCustomOptions(options)
+		}
+
+		fmt.Println()
+		log.Infof("Running build")
+
+		// Output tool
+		{
+			if cfg.OutputTool == "xcpretty" {
+				xcprettyCmd := xcpretty.New(xcodeBuildCmd)
+
+				util.LogWithTimestamp(colorstring.Green, "$ %s", xcprettyCmd.PrintableCmd())
+				fmt.Println()
+
+				if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
+					log.Errorf("\nLast lines of the Xcode's build log:")
+					fmt.Println(stringutil.LastNLines(rawXcodebuildOut, 10))
+
+					if err := utils.ExportOutputFileContent(rawXcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
+						log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
+					} else {
+						log.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log is also available in the raw-xcodebuild-output.log
+	The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable
+	(value: %s)`, rawXcodebuildOutputLogPath)
+					}
+
+					failf("Archive failed, error: %s", err)
+				}
+			} else {
+				util.LogWithTimestamp(colorstring.Green, "$ %s", xcodeBuildCmd.PrintableCmd())
+				fmt.Println()
+
+				buildRootCmd := xcodeBuildCmd.Command()
+				buildRootCmd.SetStdout(os.Stdout)
+				buildRootCmd.SetStderr(os.Stderr)
+
+				if err := buildRootCmd.Run(); err != nil {
+					failf("Archive failed, error: %s", err)
+				}
 			}
 		}
 	}
 
 	fmt.Println()
-	log.Infof("Copy artifacts from Derived Data to output dir")
+	log.Infof("Copy artifacts from Derived Data to %s", cfg.OutputDir)
+	{
+		// Fetch project's targets from .xcodeproject
+		targets, mainTarget, err := buildedTargets(cfg.ProjectPath, cfg.Scheme)
+		if err != nil {
+			failf("Failed to fetch project's targets, error: %s", err)
+		}
 
-	// Fetch project's targets from .xcodeproject
-	targets, mainTarget, err := buildedTargets(cfg.ProjectPath, cfg.Scheme)
-	if err != nil {
-		failf("Failed to fetch project's targets, error: %s", err)
+		// Export the artifact from the build dir to the output_dir
+		if err := exportArtifacts(targets, mainTarget, cfg.ProjectPath, cfg.Configuration, cfg.XcodebuildOptions, cfg.SimulatorPlatform); err != nil {
+			failf("Failed to export the artifacts, error: %s", err)
+		}
 	}
-
-	// Export the artifact from the build dir to the output_dir
-	if err := exportArtifacts(targets, mainTarget, cfg.ProjectPath, cfg.Configuration, cfg.XcodebuildOptions, cfg.SimulatorPlatform); err != nil {
-		failf("Failed to export the artifacts, error: %s", err)
-	}
-}
-
-func failf(format string, v ...interface{}) {
-	log.Errorf(format, v...)
-	os.Exit(1)
-}
-
-// ColoringFunc ...
-type ColoringFunc func(...interface{}) string
-
-func currentTimestamp() string {
-	timeStampFormat := "15:04:05"
-	currentTime := time.Now()
-	return currentTime.Format(timeStampFormat)
-}
-
-func logWithTimestamp(coloringFunc ColoringFunc, format string, v ...interface{}) {
-	message := fmt.Sprintf(format, v...)
-	messageWithTimeStamp := fmt.Sprintf("[%s] %s", currentTimestamp(), coloringFunc(message))
-	fmt.Println(messageWithTimeStamp)
 }
 
 func targetBuildDir(projectPath, targetName, configuration, sdk, buildOptions string) (string, error) {
@@ -328,16 +310,6 @@ func targetBuildDir(projectPath, targetName, configuration, sdk, buildOptions st
 	return "", fmt.Errorf("could not find the project's target build dir")
 }
 
-func copy(source string, destination string) error {
-	copyCmd := command.New("cp", "-R", source, destination)
-	copyCmd.SetStdout(os.Stdout)
-	copyCmd.SetStderr(os.Stderr)
-
-	log.Printf(copyCmd.PrintableCommandArgs())
-
-	return copyCmd.Run()
-}
-
 func exportArtifacts(targets []xcodeproj.Target, mainTarget xcodeproj.Target, projectPath, configuration, XcodebuildOptions, simulatorPlatform string) error {
 	for _, target := range targets {
 		simulatorName := iOSSimName
@@ -372,7 +344,7 @@ func exportArtifacts(targets []xcodeproj.Target, mainTarget xcodeproj.Target, pr
 		source := filepath.Join(buildDir, target.Name+".app")
 		destination := filepath.Join(deployDir, target.Name+".app")
 
-		if err := copy(source, destination); err != nil {
+		if err := util.CopyDir(source, destination); err != nil {
 			return fmt.Errorf("failed to copy the generated app to the Deploy dir")
 		}
 
@@ -417,4 +389,9 @@ func buildedTargets(projectPath, scheme string) ([]xcodeproj.Target, xcodeproj.T
 	}
 
 	return targets, mainTarget, nil
+}
+
+func failf(format string, v ...interface{}) {
+	log.Errorf(format, v...)
+	os.Exit(1)
 }
