@@ -14,16 +14,20 @@ import (
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/stringutil"
-	"github.com/bitrise-io/steps-xcode-archive/utils"
-	"github.com/bitrise-steplib/steps-xcode-archive-for-simulator/helper"
+	"github.com/bitrise-io/steps-xcode-analyze/utils"
 	"github.com/bitrise-tools/go-steputils/stepconf"
 	"github.com/bitrise-tools/go-xcode/simulator"
+	"github.com/bitrise-tools/go-xcode/utility"
 	"github.com/bitrise-tools/go-xcode/xcodebuild"
 	"github.com/bitrise-tools/go-xcode/xcpretty"
 	shellquote "github.com/kballard/go-shellquote"
 )
 
-// xcodebuild build -workspace ~/Develop/XCode/XcodeArchiveTest/XcodeArchiveTest.xcworkspace -scheme Other -configuration Debug -sdk iphonesimulator11.4 -derivedDataPath ./ddata
+// xcodebuild build -project ./Test.xcodeproj -scheme Test -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 6,OS=11.4' -derivedDataPath ./ddata
+// xcodebuild -project Test.xcodeproj -configuration Debug -sdk iphonesimulator -showBuildSettings | grep TARGET_BUILD_DIR
+
+// xcodebuild build -project ios-simple-objc/ios-simple-objc.xcodeproj -scheme ios-simple-objc -destination "platform=iOS Simulator,name=iPhone 6,OS=11.4" "CODE_SIGN_IDENTITY=" "CODE_SIGNING_REQUIRED=NO"
+// xcodebuild build -project ./Test.xcodeproj -scheme Test -configuration Debug "CODE_SIGN_IDENTITY=" "CODE_SIGNING_REQUIRED=NO" PROVISIONING_PROFILE_SPECIFIER= -destination "platform=iOS Simulator,name=iPhone 6,OS=11.4" -derivedDataPath ./ddata
 
 const (
 	minSupportedXcodeMajorVersion = 6
@@ -66,36 +70,50 @@ func main() {
 
 	log.SetEnableDebugLog(cfg.VerboseLog)
 
-	log.Infof("step determined configs:")
-
-	_, err := helper.Ruby(cfg.ProjectPath, cfg.ArtifactName)
-	if err != nil {
-		failf("Ruby", err)
-	}
+	log.Infof("Step determined configs:")
 
 	// Detect Xcode major version
-	xcodebuildVersion, err := utils.XcodeBuildVersion()
+	xcodebuildVersion, err := utility.GetXcodeVersion()
 	if err != nil {
 		failf("Failed to determin xcode version, error: %s", err)
 	}
-	log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.XcodeVersion.String(), xcodebuildVersion.BuildVersion)
+	log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.Version, xcodebuildVersion.BuildVersion)
 
-	xcodeMajorVersion := xcodebuildVersion.XcodeVersion.Segments()[0]
+	xcodeMajorVersion := xcodebuildVersion.MajorVersion
 	if xcodeMajorVersion < minSupportedXcodeMajorVersion {
-		failf("Invalid xcode major version (%s), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
+		failf("Invalid xcode major version (%d), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
 	}
 
 	// Detect xcpretty version
-	if cfg.OutputTool == "xcpretty" {
-		if !utils.IsXcprettyInstalled() {
-			failf(`xcpretty is not installed
-	For xcpretty installation see: 'https://github.com/supermarin/xcpretty',
-	or use 'xcodebuild' as 'output_tool'.`)
-		}
+	outputTool := cfg.OutputTool
+	if outputTool == "xcpretty" {
+		fmt.Println()
+		log.Infof("Checking if output tool (xcpretty) is installed")
 
-		xcprettyVersion, err := utils.XcprettyVersion()
+		installed, err := xcpretty.IsInstalled()
 		if err != nil {
-			failf("Failed to determin xcpretty version, error: %s", err)
+			log.Warnf("Failed to check if xcpretty is installed, error: %s", err)
+			log.Printf("Switching to xcodebuild for output tool")
+			outputTool = "xcodebuild"
+		} else if !installed {
+			log.Warnf(`xcpretty is not installed`)
+			fmt.Println()
+			log.Printf("Installing xcpretty")
+
+			if err := xcpretty.Install(); err != nil {
+				log.Warnf("Failed to install xcpretty, error: %s", err)
+				log.Printf("Switching to xcodebuild for output tool")
+				outputTool = "xcodebuild"
+			}
+		}
+	}
+
+	if outputTool == "xcpretty" {
+		xcprettyVersion, err := xcpretty.Version()
+		if err != nil {
+			log.Warnf("Failed to determin xcpretty version, error: %s", err)
+			log.Printf("Switching to xcodebuild for output tool")
+			outputTool = "xcodebuild"
 		}
 		log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 	}
@@ -144,9 +162,6 @@ func main() {
 
 	//
 	// Create the app with Xcode Command Line tools
-	log.Infof("Runing build...")
-	fmt.Println()
-
 	isWorkspace := false
 	ext := filepath.Ext(cfg.ProjectPath)
 	if ext == ".xcodeproj" {
@@ -157,32 +172,38 @@ func main() {
 		failf("Project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
 	}
 
-	xcodeBuildCmd := xcodebuild.NewBuildCommand(cfg.ProjectPath, isWorkspace)
+	xcodeBuildCmd := xcodebuild.NewCommandBuilder(cfg.ProjectPath, isWorkspace, xcodebuild.BuildAction)
 	xcodeBuildCmd.SetScheme(cfg.Scheme)
 	xcodeBuildCmd.SetConfiguration(cfg.Configuration)
 
-	// SDK version
+	fmt.Println()
+	log.Infof("Simulator info")
+
+	// Destination
 	{
 		simulatorVersion := cfg.SimulatorOsVersion
+
 		if simulatorVersion == "latest" {
-			// Simulator infos
-			_, osVersion, err := simulator.GetLatestSimulatorInfoAndVersion(cfg.SimulatorPlatform, cfg.SimulatorDevice)
+			info, _, err := simulator.GetLatestSimulatorInfoAndVersion(cfg.SimulatorPlatform, cfg.SimulatorDevice)
 			if err != nil {
 				failf("Failed to get latest simulator info - error: %s", err)
 			}
 
-			// format: `iphonesimulator11.4` or `appletvsimulator11.4`
-			simulatorName := iOSSimName
-			if cfg.SimulatorPlatform == "tvOS" {
-				simulatorName = tvOSSimName
+			log.Printf("Latest simulator for %s = %s", cfg.SimulatorDevice, info.ID)
+			xcodeBuildCmd.SetCustomOptions([]string{"-destination", "id=" + info.ID, "PROVISIONING_PROFILE_SPECIFIER="})
+		} else {
+			info, err := simulator.GetSimulatorInfo((cfg.SimulatorPlatform + " " + cfg.SimulatorOsVersion), cfg.SimulatorDevice)
+			if err != nil {
+				failf("Failed to get simulator info (%s-%s) - error: %s", (cfg.SimulatorPlatform + cfg.SimulatorOsVersion), cfg.SimulatorDevice, err)
 			}
-			simulatorVersion = simulatorName + strings.TrimSpace(strings.TrimLeft(osVersion, cfg.SimulatorPlatform))
-		}
 
-		xcodeBuildCmd.SetSDK(simulatorVersion)
+			log.Printf("Simulator for %s %s = %s", cfg.SimulatorDevice, cfg.SimulatorOsVersion, info.ID)
+			xcodeBuildCmd.SetCustomOptions([]string{"-destination", "id=" + info.ID, "PROVISIONING_PROFILE_SPECIFIER="})
+		}
 	}
 
 	// Clean build
+
 	if cfg.IsCleanBuild {
 		xcodeBuildCmd.SetCustomBuildAction("clean")
 	}
@@ -195,6 +216,9 @@ func main() {
 		}
 		xcodeBuildCmd.SetCustomOptions(options)
 	}
+
+	fmt.Println()
+	log.Infof("Running build")
 
 	// Output tool
 	{
@@ -222,17 +246,18 @@ func main() {
 			logWithTimestamp(colorstring.Green, "$ %s", xcodeBuildCmd.PrintableCmd())
 			fmt.Println()
 
-			archiveRootCmd := xcodeBuildCmd.Command()
-			archiveRootCmd.SetStdout(os.Stdout)
-			archiveRootCmd.SetStderr(os.Stderr)
+			buildRootCmd := xcodeBuildCmd.Command()
+			buildRootCmd.SetStdout(os.Stdout)
+			buildRootCmd.SetStderr(os.Stderr)
 
-			if err := archiveRootCmd.Run(); err != nil {
+			if err := buildRootCmd.Run(); err != nil {
 				failf("Archive failed, error: %s", err)
 			}
 		}
 	}
 
 	fmt.Println()
+	log.Infof("Copy app from Derived Data to deploy dir")
 
 	// Copy app from Derived Data to Deploy dir
 	{
@@ -294,7 +319,7 @@ func targetBuildDir(projectPath, scheme, configuration, sdk, buildOptions string
 		return "", fmt.Errorf("Project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
 	}
 
-	xcodeBuildCmd := xcodebuild.NewBuildCommand(projectPath, isWorkspace)
+	xcodeBuildCmd := xcodebuild.NewCommandBuilder(projectPath, isWorkspace, xcodebuild.BuildAction)
 	xcodeBuildCmd.SetCustomBuildAction("-showBuildSettings")
 	xcodeBuildCmd.SetScheme(scheme)
 	xcodeBuildCmd.SetConfiguration(configuration)
@@ -331,6 +356,8 @@ func copy(source string, destination string) error {
 	copyCmd := command.New("cp", "-R", source, destination)
 	copyCmd.SetStdout(os.Stdout)
 	copyCmd.SetStderr(os.Stderr)
+
+	log.Printf(copyCmd.PrintableCommandArgs())
 
 	return copyCmd.Run()
 }

@@ -3,89 +3,87 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:674496f7bb0ea7e943862034e24c017f57406cd046bd1c45bc174c67d15788b1"
   name = "github.com/bitrise-io/go-utils"
   packages = [
     "colorstring",
     "command",
+    "command/rubycommand",
     "command/rubyscript",
     "errorutil",
     "fileutil",
     "log",
     "parseutil",
     "pathutil",
-    "pkcs12",
-    "pkcs12/internal/rc2",
     "pointers",
-    "stringutil"
+    "stringutil",
   ]
+  pruneopts = "UT"
   revision = "d1de0dbcb811588e61362aff67bb700b93c13c17"
 
 [[projects]]
-  name = "github.com/bitrise-io/steps-xcode-archive"
+  branch = "rewrite_in_go"
+  digest = "1:18fb37ab9a11d0ef65dd58d89825590805e62117763eda283cf46442b58a7b1b"
+  name = "github.com/bitrise-io/steps-xcode-analyze"
   packages = ["utils"]
-  revision = "1a79984af4a758f93a793f928612ed4e42602727"
-  version = "2.4.8"
+  pruneopts = "UT"
+  revision = "a1ee3e4abc02e94f58e8ffe83ed9c219a1c2268e"
 
 [[projects]]
   branch = "master"
+  digest = "1:d9f47b0642c42512eefed4aad27c4daf41e9f3380087d302cd0a9f5612143856"
   name = "github.com/bitrise-tools/go-steputils"
   packages = ["stepconf"]
+  pruneopts = "UT"
   revision = "d4d9e08cc4347e8784bb18419fcdceb932e17019"
 
 [[projects]]
   branch = "master"
+  digest = "1:03b27ddb62240f5449cf8b3a6a0679434ac0168048cacfb6b880486476c43d2b"
   name = "github.com/bitrise-tools/go-xcode"
   packages = [
-    "certificateutil",
-    "exportoptions",
     "models",
-    "plistutil",
-    "profileutil",
     "simulator",
+    "utility",
     "xcodebuild",
-    "xcpretty"
+    "xcpretty",
   ]
-  revision = "f0ff07f19851eb1a50164389635fe5659b647690"
+  pruneopts = "UT"
+  revision = "07db8cf760f5213241e12c0595158aedce96669a"
 
 [[projects]]
   branch = "master"
-  name = "github.com/fullsailor/pkcs7"
-  packages = ["."]
-  revision = "ae226422660e5ca10db350d33f81c6608f3fbcdd"
-
-[[projects]]
-  branch = "master"
+  digest = "1:e12b92b8bb20af6e299e9829534cfe790857702a988d3f0443e772c9d82a4fd2"
   name = "github.com/hashicorp/go-version"
   packages = ["."]
+  pruneopts = "UT"
   revision = "23480c0665776210b5fbbac6eaaee40e3e6a96b7"
 
 [[projects]]
   branch = "master"
+  digest = "1:400e113a367b511b9b09ca642ee11d9885485a93838526d697033af334a2fdde"
   name = "github.com/kballard/go-shellquote"
   packages = ["."]
+  pruneopts = "UT"
   revision = "95032a82bc518f77982ea72343cc1ade730072f0"
-
-[[projects]]
-  name = "github.com/pkg/errors"
-  packages = ["."]
-  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
-  version = "v0.8.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/ryanuber/go-glob"
-  packages = ["."]
-  revision = "256dc444b735e061061cf46c809487313d5b0065"
-
-[[projects]]
-  branch = "master"
-  name = "howett.net/plist"
-  packages = ["."]
-  revision = "500bd5b9081b5957ac10389f86e069869f00c348"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5ae5a67487ea58b994728a4e1a5be7072e073cce95dff995492a3eaca481cd2e"
+  input-imports = [
+    "github.com/bitrise-io/go-utils/colorstring",
+    "github.com/bitrise-io/go-utils/command",
+    "github.com/bitrise-io/go-utils/command/rubyscript",
+    "github.com/bitrise-io/go-utils/log",
+    "github.com/bitrise-io/go-utils/pathutil",
+    "github.com/bitrise-io/go-utils/stringutil",
+    "github.com/bitrise-io/steps-xcode-analyze/utils",
+    "github.com/bitrise-tools/go-steputils/stepconf",
+    "github.com/bitrise-tools/go-xcode/simulator",
+    "github.com/bitrise-tools/go-xcode/utility",
+    "github.com/bitrise-tools/go-xcode/xcodebuild",
+    "github.com/bitrise-tools/go-xcode/xcpretty",
+    "github.com/kballard/go-shellquote",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
