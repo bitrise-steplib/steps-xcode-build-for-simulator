@@ -14,7 +14,7 @@ import (
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/steps-xcode-analyze/utils"
 	"github.com/bitrise-io/steps-xcode-test/pretty"
-	"github.com/bitrise-steplib/steps-xcode-archive-for-simulator/util"
+	"github.com/bitrise-steplib/steps-xcode-build-for-simulator/util"
 	"github.com/bitrise-tools/go-steputils/stepconf"
 	"github.com/bitrise-tools/go-xcode/simulator"
 	"github.com/bitrise-tools/go-xcode/utility"
