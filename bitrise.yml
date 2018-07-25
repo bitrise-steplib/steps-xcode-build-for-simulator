@@ -19,7 +19,7 @@ workflows:
     - BITRISE_SCHEME: ios-simple-objc
     - CONFIGURATION: "Debug"
     - OUTPUT_TOOL: xcodebuild
-    - SIMULATOR_OS_VERSION: "11.4"
+    - SIMULATOR_OS_VERSION: "latest"
     after_run:
     - _common
 
