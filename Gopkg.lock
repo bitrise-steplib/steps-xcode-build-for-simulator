@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:723e6aa132363f2383b4ad102ef504745ef410b262cc43e59f0d333cc0aff680"
+  digest = "1:82504d4fcaa0608f11201049ff0070403b80dde64c960adc640cfb7b57e257ad"
   name = "github.com/bitrise-io/go-utils"
   packages = [
     "colorstring",
@@ -46,7 +46,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:03b27ddb62240f5449cf8b3a6a0679434ac0168048cacfb6b880486476c43d2b"
+  digest = "1:a12b3323f5ba04d05cbf231769ed4a43b091bad647d661315ce0e5ad8a38a588"
   name = "github.com/bitrise-tools/go-xcode"
   packages = [
     "models",
@@ -60,7 +60,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4d8a54a47b4580827ad55f19220c131b93c2faea6bd01b46bfd3835e4bedfcf7"
+  digest = "1:83f8ae6225e098bf4b6abf3bac9183e1930cdab94f8a7a8dacf72ef5e83a8f99"
   name = "github.com/bitrise-tools/xcode-project"
   packages = [
     "serialized",

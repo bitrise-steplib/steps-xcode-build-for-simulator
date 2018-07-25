@@ -28,7 +28,7 @@ workflows:
     - go-list:
     - golint:
     - errcheck:
-    - git::https://github.com/bitrise-steplib/steps-go-test.git@create-file:
+    - go-test:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
     - COMMIT: "52ca16a9cead25be8c95c54e7fd53ce8fd945330"
@@ -36,8 +36,9 @@ workflows:
     - BITRISE_SCHEME: ios-xcode-8.0
     - OUTPUT_TOOL: xcpretty
     - SIMULATOR_OS_VERSION: latest
-    after_run:
+    before_run:
     - test_objc
+    after_run:
     - _common
 
   test_multi_target:

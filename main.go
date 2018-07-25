@@ -249,7 +249,7 @@ func main() {
 		}
 
 		// Export the artifact from the build dir to the output_dir
-		if err := exportArtifacts(targets, mainTarget, cfg.ProjectPath, cfg.Configuration, cfg.XcodebuildOptions, cfg.SimulatorPlatform); err != nil {
+		if err := exportArtifacts(targets, mainTarget, cfg.ProjectPath, cfg.Configuration, cfg.XcodebuildOptions, cfg.SimulatorPlatform, absOutputDir); err != nil {
 			failf("Failed to export the artifacts, error: %s", err)
 		}
 	}
@@ -303,7 +303,7 @@ func targetBuildDir(projectPath, targetName, configuration, sdk, buildOptions st
 }
 
 // exportArtifacts exports the main target and it's .app dependencies.
-func exportArtifacts(targets []xcodeproj.Target, mainTarget xcodeproj.Target, projectPath, configuration, XcodebuildOptions, simulatorPlatform string) error {
+func exportArtifacts(targets []xcodeproj.Target, mainTarget xcodeproj.Target, projectPath, configuration, XcodebuildOptions, simulatorPlatform, deployDir string) error {
 	for _, target := range targets {
 		simulatorName := iOSSimName
 
@@ -333,7 +333,6 @@ func exportArtifacts(targets []xcodeproj.Target, mainTarget xcodeproj.Target, pr
 			return fmt.Errorf("failed to get project's build target dir, error: %s", err)
 		}
 
-		deployDir := os.Getenv("BITRISE_DEPLOY_DIR")
 		source := filepath.Join(buildDir, target.Name+".app")
 		destination := filepath.Join(deployDir, target.Name+".app")
 
@@ -352,9 +351,10 @@ func schemeTargets(projectPath, scheme string) ([]xcodeproj.Target, xcodeproj.Ta
 	var targets []xcodeproj.Target
 	var mainTarget xcodeproj.Target
 	{
-		proj, err := xcodeproj.Open(projectPath)
+		pth := strings.Replace(projectPath, ".xcworkspace", ".xcodeproj", 1)
+		proj, err := xcodeproj.Open(pth)
 		if err != nil {
-			return nil, xcodeproj.Target{}, fmt.Errorf("Failed to open xcproj - (%s), error: %s", projectPath, err)
+			return nil, xcodeproj.Target{}, fmt.Errorf("Failed to open xcproj - (%s), error: %s", pth, err)
 		}
 
 		projTargets := proj.Proj.Targets
