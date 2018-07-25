@@ -28,7 +28,7 @@ workflows:
     - go-list:
     - golint:
     - errcheck:
-    - go-test:
+    - git::https://github.com/bitrise-steplib/steps-go-test.git@create-file:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
     - COMMIT: "52ca16a9cead25be8c95c54e7fd53ce8fd945330"
