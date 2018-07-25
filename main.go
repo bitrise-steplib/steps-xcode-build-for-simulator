@@ -342,12 +342,14 @@ func exportArtifacts(targets []xcodeproj.Target, mainTarget xcodeproj.Target, pr
 
 // schemeTargets return the main target and it's dependent .app targets for the provided scheme.
 func schemeTargets(projectPath, scheme string) ([]xcodeproj.Target, xcodeproj.Target, error) {
+	projPth := strings.Replace(projectPath, ".xcworkspace", ".xcodeproj", 1)
+
 	var targets []xcodeproj.Target
 	var mainTarget xcodeproj.Target
 	{
-		proj, err := xcodeproj.Open(projectPath)
+		proj, err := xcodeproj.Open(projPth)
 		if err != nil {
-			return nil, xcodeproj.Target{}, fmt.Errorf("Failed to open xcproj - (%s), error: %s", projectPath, err)
+			return nil, xcodeproj.Target{}, fmt.Errorf("Failed to open xcproj - (%s), error: %s", projPth, err)
 		}
 
 		projTargets := proj.Proj.Targets
