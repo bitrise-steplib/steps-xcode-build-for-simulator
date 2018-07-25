@@ -1,6 +1,9 @@
-# Xcode Archive for Simulator
+# Xcode Build for Simulator
 
-Todo
+Runs Xcode Build command for simulators
+for iOS, tvOS or watchOS.
+
+You can share it, run it on simulator or upload it to Appetize.io.
 
 
 ## How to use this Step

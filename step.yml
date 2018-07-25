@@ -1,0 +1,167 @@
+title: Xcode build for simulator
+summary: Runs Xcode Build command for simulators.
+description: |
+  Runs Xcode Build command for simulators
+  for iOS, tvOS or watchOS.
+
+  You can share it, run it on simulator or upload it to Appetize.io.
+website: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator
+source_code_url: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator
+support_url: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator/issues
+
+project_type_tags:
+  - ios
+  - xamarin
+  - react-native
+  - cordova
+  - ionic
+type_tags:
+  - build
+
+deps:
+  check_only:
+  - name: xcode
+  brew:
+  - name: go
+  apt_get:
+  - name: go
+
+toolkit:
+  go:
+    package_name: github.com/bitrise-steplib/steps-xcode-build-for-simulator
+
+inputs:
+  - project_path: $BITRISE_PROJECT_PATH
+    opts:
+      title: Project (or Workspace) path
+      summary: "A `.xcodeproj` or `.xcworkspace` path."
+      description: "A `.xcodeproj` or `.xcworkspace` path."
+      is_required: "true"
+  - scheme: $BITRISE_SCHEME
+    opts:
+      title: Scheme name
+      summary: "The Scheme to use."
+      description: "The Scheme to use."
+      is_required: "true"
+  - simulator_device: iPhone 6s Plus
+    opts:
+      title: Simulator
+      summary: "Simulator name"
+      description: |-
+        Set it as it is shown in Xcode's device selection dropdown UI.
+
+        A couple of examples (the
+        actual available options depend on which versions
+        are installed):
+
+        * iPhone 6
+        * iPhone 6 Plus
+        * iPad
+        * iPad Air
+        * Apple TV 1080p (don't forget to set the platform to `tvOS Simulator` to use this option!)
+      is_required: "true"
+  - simulator_os_version: "latest"
+    opts:
+      title: OS version
+      description: |-
+        Set it as it is shown in
+        Xcode's device selection dropdown UI.
+
+        A couple of format examples (the
+        actual available options depend on which versions
+        are installed):
+
+        * "8.4"
+        * latest
+      is_required: "true"
+  - simulator_platform: iOS
+    opts:
+      title: Platform
+      description: |-
+        Set it as it is shown in Xcode's device selection dropdown UI.
+
+        A couple of examples (the
+        actual available options depend on which versions
+        are installed):
+
+        * iOS Simulator
+        * tvOS Simulator
+      value_options:
+      - iOS
+      - tvOS
+      is_required: "true"
+  - configuration:
+    opts:
+      title: "Configuration name"
+      description: |-
+        (optional) The configuration to use. By default your Scheme
+        defines which configuration (Debug, Release, ...) should be used,
+        but you can overwrite it with this option.
+
+        **Make sure that the Configuration you specify actually exists
+        in your Xcode Project**. If it does not, if you have a typo
+        in the value of this input Xcode will simply use the Configuration
+        specified by the Scheme and will silently ignore this parameter!
+  - xcodebuild_options: ""
+    opts:
+      category: Debug
+      title: Additional options for xcodebuild call
+      description: |-
+        Options added to the end of the xcodebuild call.
+
+        You can use multiple options, separated by a space
+        character. Example: `-xcconfig PATH -verbose`
+  - workdir: $BITRISE_SOURCE_DIR
+    opts:
+      category: Debug
+      title: Working directory
+      summary: ""
+      description: |-
+        Working directory of the step.
+        You can leave it empty to don't change it.
+  - output_dir: $BITRISE_DEPLOY_DIR
+    opts:
+      category: Debug
+      title: Output directory path
+      summary: ""
+      description: |-
+        This directory will contain the generated .app artifacts.
+      is_required: "true"
+  - is_clean_build: "no"
+    opts:
+      category: Debug
+      title: Do a clean Xcode build before the build?
+      value_options:
+        - "yes"
+        - "no"
+      is_required: "true"
+  - output_tool: xcpretty
+    opts:
+      category: Debug
+      title: Output tool
+      description: |-
+        If output_tool is set to xcpretty, the xcodebuild output will be prettified by xcpretty.
+        If output_tool is set to xcodebuild, the raw xcodebuild output will be printed.
+      value_options:
+      - xcpretty
+      - xcodebuild
+      is_required: "true"
+      is_expand: "false"
+  - verbose_log: "no"
+    opts:
+      category: Debug
+      title: Enable verbose logging?
+      description: Enable verbose logging?
+      is_required: "true"
+      value_options:
+      - "yes"
+      - "no"
+
+outputs:
+  - BITRISE_XCODE_BUILD_RAW_RESULT_TEXT_PATH:
+    opts:
+      title: The full, raw build output file path
+      description: |-
+        This is the path of the raw build results log file.
+
+        If `output_tool=xcpretty` and the build fails this log will contain the build output.
