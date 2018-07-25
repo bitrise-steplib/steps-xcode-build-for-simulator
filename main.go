@@ -260,16 +260,10 @@ func main() {
 
 // targetBuildDir returns the target's TARGET_BUILD_DIR path for the provided sdk (e.g iossimulator)
 func targetBuildDir(projectPath, targetName, configuration, sdk, buildOptions string) (string, error) {
-	ext := filepath.Ext(projectPath)
-	isWorkspace := false
 
-	if ext == ".xcworkspace" {
-		isWorkspace = true
-	} else if ext != ".xcodeproj" {
-		return "", fmt.Errorf("Project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
-	}
+	projPth := strings.Replace(projectPath, ".xcworkspace", ".xcodeproj", 1)
 
-	xcodeBuildCmd := xcodebuild.NewCommandBuilder(projectPath, isWorkspace, xcodebuild.BuildAction)
+	xcodeBuildCmd := xcodebuild.NewCommandBuilder(projPth, false, xcodebuild.BuildAction)
 	xcodeBuildCmd.SetCustomBuildAction("-showBuildSettings")
 	xcodeBuildCmd.SetCustomOptions([]string{"-target", targetName})
 	xcodeBuildCmd.SetConfiguration(configuration)
@@ -351,10 +345,9 @@ func schemeTargets(projectPath, scheme string) ([]xcodeproj.Target, xcodeproj.Ta
 	var targets []xcodeproj.Target
 	var mainTarget xcodeproj.Target
 	{
-		pth := strings.Replace(projectPath, ".xcworkspace", ".xcodeproj", 1)
-		proj, err := xcodeproj.Open(pth)
+		proj, err := xcodeproj.Open(projectPath)
 		if err != nil {
-			return nil, xcodeproj.Target{}, fmt.Errorf("Failed to open xcproj - (%s), error: %s", pth, err)
+			return nil, xcodeproj.Target{}, fmt.Errorf("Failed to open xcproj - (%s), error: %s", projectPath, err)
 		}
 
 		projTargets := proj.Proj.Targets
