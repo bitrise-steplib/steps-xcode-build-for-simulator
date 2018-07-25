@@ -90,7 +90,7 @@ inputs:
       - iOS
       - tvOS
       is_required: "true"
-  - configuration:
+  - configuration: Debug
     opts:
       title: "Configuration name"
       description: |-
@@ -102,6 +102,7 @@ inputs:
         in your Xcode Project**. If it does not, if you have a typo
         in the value of this input Xcode will simply use the Configuration
         specified by the Scheme and will silently ignore this parameter!
+      is_required: "true"
   - xcodebuild_options: ""
     opts:
       category: Debug

@@ -13,5 +13,5 @@
   unused-packages = true
 
 [[constraint]]
-  branch = "master"
+  branch = "workspace_build_settings"
   name = "github.com/bitrise-tools/xcode-project"
