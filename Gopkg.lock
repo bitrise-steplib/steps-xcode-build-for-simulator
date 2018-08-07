@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:82504d4fcaa0608f11201049ff0070403b80dde64c960adc640cfb7b57e257ad"
+  digest = "1:ca950e4f3bdf3150aa39117da56c34747027d6f8709ccae2473efc29ba152a0a"
   name = "github.com/bitrise-io/go-utils"
   packages = [
     "colorstring",
@@ -14,6 +14,8 @@
     "log",
     "parseutil",
     "pathutil",
+    "pkcs12",
+    "pkcs12/internal/rc2",
     "pointers",
     "stringutil",
   ]
@@ -21,12 +23,12 @@
   revision = "d1de0dbcb811588e61362aff67bb700b93c13c17"
 
 [[projects]]
-  branch = "rewrite_in_go"
-  digest = "1:18fb37ab9a11d0ef65dd58d89825590805e62117763eda283cf46442b58a7b1b"
-  name = "github.com/bitrise-io/steps-xcode-analyze"
+  digest = "1:8433456eb9be72817b68932a740d7431acf337cb41e87c3147db14b9ecb61b09"
+  name = "github.com/bitrise-io/steps-xcode-archive"
   packages = ["utils"]
   pruneopts = "UT"
-  revision = "a1ee3e4abc02e94f58e8ffe83ed9c219a1c2268e"
+  revision = "4931b5ff1786695db76eca2de1d90fb328322279"
+  version = "2.4.12"
 
 [[projects]]
   branch = "master"
@@ -38,10 +40,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a12b3323f5ba04d05cbf231769ed4a43b091bad647d661315ce0e5ad8a38a588"
+  digest = "1:c5cc2e4b8bbf7c9b5ba190215024766652ce1ab63e1fb1f500f5229108de2fe1"
   name = "github.com/bitrise-tools/go-xcode"
   packages = [
+    "certificateutil",
+    "exportoptions",
     "models",
+    "plistutil",
+    "profileutil",
     "simulator",
     "utility",
     "xcodebuild",
@@ -65,11 +71,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e12b92b8bb20af6e299e9829534cfe790857702a988d3f0443e772c9d82a4fd2"
+  digest = "1:095c5b12709e45a61ff2820c2bf81c7de7a030629cb728fc7a2abec35b5cbadb"
+  name = "github.com/fullsailor/pkcs7"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "8306686428a5fe132eac8cb7c4848af725098bd4"
+
+[[projects]]
+  branch = "master"
+  digest = "1:32c0e96a63bd093eccf37db757fb314be5996f34de93969321c2cbef893a7bd6"
   name = "github.com/hashicorp/go-version"
   packages = ["."]
   pruneopts = "UT"
-  revision = "23480c0665776210b5fbbac6eaaee40e3e6a96b7"
+  revision = "270f2f71b1ee587f3b609f00f422b76a6b28f348"
 
 [[projects]]
   branch = "master"
@@ -78,6 +92,22 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "95032a82bc518f77982ea72343cc1ade730072f0"
+
+[[projects]]
+  digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:5b92d232e81c3e8eec282c92dcaa2e0e1ad3c23157be19a01b3e33f7e6e8d137"
+  name = "github.com/ryanuber/go-glob"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "256dc444b735e061061cf46c809487313d5b0065"
 
 [[projects]]
   branch = "master"
@@ -96,7 +126,7 @@
     "github.com/bitrise-io/go-utils/log",
     "github.com/bitrise-io/go-utils/pathutil",
     "github.com/bitrise-io/go-utils/stringutil",
-    "github.com/bitrise-io/steps-xcode-analyze/utils",
+    "github.com/bitrise-io/steps-xcode-archive/utils",
     "github.com/bitrise-tools/go-steputils/stepconf",
     "github.com/bitrise-tools/go-xcode/simulator",
     "github.com/bitrise-tools/go-xcode/utility",

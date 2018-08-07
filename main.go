@@ -10,7 +10,7 @@ import (
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/stringutil"
-	"github.com/bitrise-io/steps-xcode-analyze/utils"
+	"github.com/bitrise-io/steps-xcode-archive/utils"
 	"github.com/bitrise-steplib/steps-xcode-build-for-simulator/util"
 	"github.com/bitrise-tools/go-steputils/stepconf"
 	"github.com/bitrise-tools/go-xcode/simulator"
@@ -246,7 +246,7 @@ func main() {
 			failf("Failed to open xcproj - (%s), error:", cfg.ProjectPath, err)
 		}
 
-		schemeBuildDir, err := schemeBuildTargetDir(proj, cfg.ProjectPath, cfg.Scheme, cfg.Configuration, cfg.SimulatorPlatform)
+		schemeBuildDir, err := buildTargetDirForScheme(proj, cfg.ProjectPath, cfg.Scheme, cfg.Configuration, cfg.SimulatorPlatform)
 		if err != nil {
 			failf("Failed to get scheme (%s) build target dir, error: %s", err)
 		}
@@ -328,7 +328,7 @@ func findBuildedProject(pth, schemeName, configurationName string) (xcodeproj.Xc
 	return project, scheme.Name, nil
 }
 
-func schemeBuildTargetDir(proj xcodeproj.XcodeProj, projectPath, scheme, configuration, simulatorPlatform string) (string, error) {
+func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, configuration, simulatorPlatform string) (string, error) {
 	// Fetch project's main target from .xcodeproject
 	simulatorName := iOSSimName
 	if simulatorPlatform == "tvOS" {
@@ -338,7 +338,7 @@ func schemeBuildTargetDir(proj xcodeproj.XcodeProj, projectPath, scheme, configu
 	var buildSettings map[string]interface{}
 	ext := filepath.Ext(projectPath)
 	if ext == ".xcodeproj" {
-		mainTarget, err := schemeMainTarget(proj, scheme)
+		mainTarget, err := mainTargetOfSchme(proj, scheme)
 		if err != nil {
 			return "", fmt.Errorf("failed to fetch project's targets, error: %s", err)
 		}
@@ -377,54 +377,74 @@ func exportArtifacts(proj xcodeproj.XcodeProj, schemeBuildDir string, configurat
 		return fmt.Errorf("failed to parse scheme's build target dir: %s", schemeBuildDir)
 	}
 
-	simulatorName := iOSSimName
 	for _, target := range proj.Proj.Targets {
 		log.Donef(target.Name + "...")
 
+		// Is the target an application? -> If not skip the export
 		_, err := target.BuildConfigurationList.BuildConfigurations[0].BuildSettings.Value("ASSETCATALOG_COMPILER_APPICON_NAME")
 		if err != nil {
 			log.Printf("Target (%s) is not an .app - SKIP", target.Name)
 			continue
 		}
 
-		sdkRoot, err := target.BuildConfigurationList.BuildConfigurations[0].BuildSettings.Value("SDKROOT")
-		if err != nil {
-			log.Debugf("No SDKROOT config found for (%s) target", target.Name)
+		//
+		// Find out the sdk for the target
+		simulatorName := iOSSimName
+		if simulatorPlatform == "tvOS" {
+			simulatorName = tvOSSimName
+		}
+		{
+			sdkRoot, err := target.BuildConfigurationList.BuildConfigurations[0].BuildSettings.Value("SDKROOT")
+			if err != nil {
+				log.Debugf("No SDKROOT config found for (%s) target", target.Name)
+			}
+
+			if sdkRoot == "watchos" {
+				simulatorName = watchOSSimName
+			}
 		}
 
-		if sdkRoot == "watchos" {
-			simulatorName = watchOSSimName
+		//
+		// Find the TARGET_BUILD_DIR for the target
+		var splitTargetDir []string
+		{
+			buildSettings, err := proj.ProjectBuildSettings(target.Name, configuration, simulatorName)
+			if err != nil {
+				return fmt.Errorf("failed to get project build settings, error: %s", err)
+			}
+
+			buildDirObject, err := buildSettings.Value("TARGET_BUILD_DIR")
+			if err != nil {
+				return fmt.Errorf("failed to get build target dir object for target (%s), error: %s", target.Name, err)
+			}
+			log.Debugf("Target (%s) TARGET_BUILD_DIR object: %+v", buildDirObject)
+
+			buildDir, ok := buildDirObject.(string)
+			if !ok || buildDir == "" {
+				return fmt.Errorf("failed to get build target dir for target (%s), error: %s", target.Name, err)
+			}
+			log.Debugf("Target (%s) TARGET_BUILD_DIR: %s", buildDir)
+
+			splitTargetDir = strings.Split(buildDir, "Build/")
+			if len(splitTargetDir) != 2 {
+				return fmt.Errorf("failed to parse build target dir (%s) for target: %s", buildDir, target.Name)
+			}
+
 		}
 
-		object, err := proj.ProjectBuildSettings(target.Name, configuration, simulatorName)
-		if err != nil {
-			return fmt.Errorf("failed to get project build settings, error: %s", err)
-		}
+		//
+		// Copy - export
+		{
 
-		buildDirObject, err := object.Value("TARGET_BUILD_DIR")
-		if err != nil {
-			return fmt.Errorf("failed to get build target dir object for target (%s), error: %s", target.Name, err)
-		}
-		log.Debugf("Target (%s) TARGET_BUILD_DIR object: %+v", buildDirObject)
+			// Parent dir (main target's build dir by the provided scheme) + current target's build dir
+			sourceDir := filepath.Join(splitSchemeDir[0], "Build", splitTargetDir[1])
 
-		buildDir, ok := buildDirObject.(string)
-		if !ok || buildDir == "" {
-			return fmt.Errorf("failed to get build target dir for target (%s), error: %s", target.Name, err)
-		}
-		log.Debugf("Target (%s) TARGET_BUILD_DIR: %s", buildDir)
+			source := filepath.Join(sourceDir, target.Name+".app")
+			destination := filepath.Join(deployDir, target.Name+".app")
 
-		splitTargetDir := strings.Split(buildDir, "Build/")
-		if len(splitTargetDir) != 2 {
-			return fmt.Errorf("failed to parse build target dir (%s) for target: %s", buildDir, target.Name)
-		}
-
-		sourceDir := filepath.Join(splitSchemeDir[0], "Build", splitTargetDir[1])
-
-		source := filepath.Join(sourceDir, target.Name+".app")
-		destination := filepath.Join(deployDir, target.Name+".app")
-
-		if err := util.CopyDir(source, destination); err != nil {
-			return fmt.Errorf("failed to copy the generated app to the Deploy dir")
+			if err := util.CopyDir(source, destination); err != nil {
+				return fmt.Errorf("failed to copy the generated app to the Deploy dir")
+			}
 		}
 	}
 
@@ -432,7 +452,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, schemeBuildDir string, configurat
 }
 
 // schemeTargets return the main target and it's dependent .app targets for the provided scheme.
-func schemeMainTarget(proj xcodeproj.XcodeProj, scheme string) (xcodeproj.Target, error) {
+func mainTargetOfSchme(proj xcodeproj.XcodeProj, scheme string) (xcodeproj.Target, error) {
 	projTargets := proj.Proj.Targets
 	sch, ok := proj.Scheme(scheme)
 	if !ok {
@@ -444,11 +464,9 @@ func schemeMainTarget(proj xcodeproj.XcodeProj, scheme string) (xcodeproj.Target
 	// Search for the main target
 	for _, t := range projTargets {
 		if t.ID == blueIdent {
-
 			return t, nil
 		}
 	}
-
 	return xcodeproj.Target{}, fmt.Errorf("failed to find the project's main target for scheme (%s)", scheme)
 }
 
