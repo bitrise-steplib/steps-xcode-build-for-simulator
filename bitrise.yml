@@ -59,6 +59,32 @@ workflows:
     after_run:
     - _common
 
+  test_workspace:
+    before_run:
+    - test_multi_target
+    envs:
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+    - BRANCH: master
+    - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
+    - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+    - SIMULATOR_OS_VERSION: "latest"
+    - OUTPUT_TOOL: xcpretty
+    after_run:
+    - _common
+
+  test_multi_target_workspace:
+    before_run:
+    - test_workspace
+    envs:
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+    - BRANCH: watch
+    - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
+    - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+    - SIMULATOR_OS_VERSION: "latest"
+    - OUTPUT_TOOL: xcpretty
+    after_run:
+    - _common
+
   _common:
     steps:
     - script:
