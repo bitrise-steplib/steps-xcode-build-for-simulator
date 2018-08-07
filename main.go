@@ -141,26 +141,24 @@ func main() {
 		}
 
 		for _, pth := range filesToCleanup {
-			if exist, err := pathutil.IsPathExists(pth); err != nil {
-				failf("Failed to check if path (%s) exist, error: %s", pth, err)
-			} else if exist {
-				if err := os.RemoveAll(pth); err != nil {
-					failf("Failed to remove path (%s), error: %s", pth, err)
-				}
+			if err := os.RemoveAll(pth); err != nil {
+				failf("Failed to remove path (%s), error: %s", pth, err)
 			}
+
 		}
 	}
 
 	//
 	// Create the app with Xcode Command Line tools
 	{
-		isWorkspace := false
+		var isWorkspace bool
 		ext := filepath.Ext(cfg.ProjectPath)
-		if ext == ".xcodeproj" {
+		switch ext {
+		case ".xcodeproj":
 			isWorkspace = false
-		} else if ext == ".xcworkspace" {
+		case ".xcworkspace":
 			isWorkspace = true
-		} else {
+		default:
 			failf("Project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
 		}
 
@@ -241,7 +239,7 @@ func main() {
 		fmt.Println()
 		log.Infof("Copy artifacts from Derived Data to %s", absOutputDir)
 
-		proj, _, err := findBuildedProject(cfg.ProjectPath, cfg.Scheme, cfg.Configuration)
+		proj, _, err := findBuiltProject(cfg.ProjectPath, cfg.Scheme, cfg.Configuration)
 		if err != nil {
 			failf("Failed to open xcproj - (%s), error:", cfg.ProjectPath, err)
 		}
@@ -261,8 +259,8 @@ func main() {
 	log.Donef("You can find the exported artifacts in: %s", absOutputDir)
 }
 
-// findBuildedProject returns the Xcode project which will be built for the provided scheme
-func findBuildedProject(pth, schemeName, configurationName string) (xcodeproj.XcodeProj, string, error) {
+// findBuiltProject returns the Xcode project which will be built for the provided scheme
+func findBuiltProject(pth, schemeName, configurationName string) (xcodeproj.XcodeProj, string, error) {
 	var scheme xcscheme.Scheme
 	var schemeContainerDir string
 
