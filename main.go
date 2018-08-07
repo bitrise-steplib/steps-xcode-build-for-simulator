@@ -261,6 +261,7 @@ func main() {
 	log.Donef("You can find the exported artifacts in: %s", absOutputDir)
 }
 
+// findBuildedProject returns the Xcode project which will be built for the provided scheme
 func findBuildedProject(pth, schemeName, configurationName string) (xcodeproj.XcodeProj, string, error) {
 	var scheme xcscheme.Scheme
 	var schemeContainerDir string
@@ -328,6 +329,7 @@ func findBuildedProject(pth, schemeName, configurationName string) (xcodeproj.Xc
 	return project, scheme.Name, nil
 }
 
+// buildTargetDirForScheme returns the TARGET_BUILD_DIR for the provided scheme
 func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, configuration, simulatorPlatform string) (string, error) {
 	// Fetch project's main target from .xcodeproject
 	simulatorName := iOSSimName
@@ -338,7 +340,7 @@ func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, conf
 	var buildSettings map[string]interface{}
 	ext := filepath.Ext(projectPath)
 	if ext == ".xcodeproj" {
-		mainTarget, err := mainTargetOfSchme(proj, scheme)
+		mainTarget, err := mainTargetOfScheme(proj, scheme)
 		if err != nil {
 			return "", fmt.Errorf("failed to fetch project's targets, error: %s", err)
 		}
@@ -452,7 +454,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, schemeBuildDir string, configurat
 }
 
 // schemeTargets return the main target and it's dependent .app targets for the provided scheme.
-func mainTargetOfSchme(proj xcodeproj.XcodeProj, scheme string) (xcodeproj.Target, error) {
+func mainTargetOfScheme(proj xcodeproj.XcodeProj, scheme string) (xcodeproj.Target, error) {
 	projTargets := proj.Proj.Targets
 	sch, ok := proj.Scheme(scheme)
 	if !ok {
