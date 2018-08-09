@@ -91,7 +91,7 @@ workflows:
     - SIMULATOR_OS_VERSION: "11.4"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/watchkit-app.app"
+    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
     after_run:
     - _common
 

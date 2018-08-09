@@ -254,7 +254,7 @@ func main() {
 		}
 
 		// Export the artifact from the build dir to the output_dir
-		if exportedArtifacts, err = exportArtifacts(proj, schemeBuildDir, cfg.Configuration, cfg.XcodebuildOptions, cfg.SimulatorPlatform, absOutputDir); err != nil {
+		if exportedArtifacts, err = exportArtifacts(proj, cfg.Scheme, schemeBuildDir, cfg.Configuration, cfg.XcodebuildOptions, cfg.SimulatorPlatform, absOutputDir); err != nil {
 			failf("Failed to export the artifacts, error: %s", err)
 		}
 	}
@@ -393,14 +393,21 @@ func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, conf
 }
 
 // exportArtifacts exports the main target and it's .app dependencies.
-func exportArtifacts(proj xcodeproj.XcodeProj, schemeBuildDir string, configuration, XcodebuildOptions, simulatorPlatform, deployDir string) ([]string, error) {
+func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir string, configuration, XcodebuildOptions, simulatorPlatform, deployDir string) ([]string, error) {
 	var exportedArtifacts []string
 	splitSchemeDir := strings.Split(schemeBuildDir, "Build/")
 	if len(splitSchemeDir) != 2 {
 		return nil, fmt.Errorf("failed to parse scheme's build target dir: %s", schemeBuildDir)
 	}
 
-	for _, target := range proj.Proj.Targets {
+	mainTarget, err := mainTargetOfScheme(proj, scheme)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch project's targets, error: %s", err)
+	}
+
+	targets := append([]xcodeproj.Target{mainTarget}, mainTarget.DependentTargets()...)
+
+	for _, target := range targets {
 		log.Donef(target.Name + "...")
 
 		// Is the target an application? -> If not skip the export
@@ -490,6 +497,7 @@ func mainTargetOfScheme(proj xcodeproj.XcodeProj, scheme string) (xcodeproj.Targ
 	for _, t := range projTargets {
 		if t.ID == blueIdent {
 			return t, nil
+
 		}
 	}
 	return xcodeproj.Target{}, fmt.Errorf("failed to find the project's main target for scheme (%s)", scheme)
