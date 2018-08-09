@@ -159,6 +159,13 @@ inputs:
       - "no"
 
 outputs:
+  - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP:
+    opts:
+      title: The exported simulator builds'path
+      description: |-
+        The exported simulator builds'path
+
+        **NOTE** Every build exported path separated by `|`.
   - BITRISE_XCODE_BUILD_RAW_RESULT_TEXT_PATH:
     opts:
       title: The full, raw build output file path

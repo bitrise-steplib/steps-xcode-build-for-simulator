@@ -3,9 +3,6 @@
 Runs Xcode Build command for simulators
 for iOS, tvOS or watchOS.
 
-You can share it, run it on simulator or upload it to Appetize.io.
-
-
 ## How to use this Step
 
 Can be run directly with the [bitrise CLI](https://github.com/bitrise-io/bitrise),
