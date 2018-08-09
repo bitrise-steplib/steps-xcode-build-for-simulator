@@ -20,7 +20,7 @@ workflows:
     - OUTPUT_TOOL: xcodebuild
     - SIMULATOR_OS_VERSION: "latest"
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: $BITRISE_DEPLOY_DIR'/ios-simple-objc.app'
+    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
     after_run:
     - _common
 
@@ -44,7 +44,7 @@ workflows:
     - OUTPUT_TOOL: xcpretty
     - SIMULATOR_OS_VERSION: latest
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: $BITRISE_DEPLOY_DIR'/'ios-xcode-8.0.app
+    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: $BITRISE_DEPLOY_DIR/ios-xcode-8.0.app
     before_run:
     - test_objc
     after_run:
