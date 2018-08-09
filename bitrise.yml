@@ -88,7 +88,7 @@ workflows:
     - BRANCH: watch
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-    - SIMULATOR_OS_VERSION: "11.3"
+    - SIMULATOR_OS_VERSION: "11.4"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/watchkit-app.app"
