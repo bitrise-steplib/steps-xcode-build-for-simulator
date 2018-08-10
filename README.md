@@ -1,7 +1,7 @@
-# Xcode Archive for Simulator
+# Xcode Build for Simulator
 
-Todo
-
+Runs Xcode Build command for simulators
+for iOS, tvOS or watchOS.
 
 ## How to use this Step
 
