@@ -411,8 +411,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 		log.Donef(target.Name + "...")
 
 		// Is the target an application? -> If not skip the export
-		_, err := target.BuildConfigurationList.BuildConfigurations[0].BuildSettings.Value("ASSETCATALOG_COMPILER_APPICON_NAME")
-		if err != nil {
+		if !strings.HasSuffix(target.ProductReference.Path, ".app") {
 			log.Printf("Target (%s) is not an .app - SKIP", target.Name)
 			continue
 		}
