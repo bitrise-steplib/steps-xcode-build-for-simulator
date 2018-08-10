@@ -19,7 +19,6 @@ import (
 	"github.com/bitrise-tools/go-xcode/xcodebuild"
 	"github.com/bitrise-tools/go-xcode/xcpretty"
 	"github.com/bitrise-tools/xcode-project/serialized"
-	xcode "github.com/bitrise-tools/xcode-project/xcodebuild"
 	"github.com/bitrise-tools/xcode-project/xcodeproj"
 	"github.com/bitrise-tools/xcode-project/xcscheme"
 	"github.com/bitrise-tools/xcode-project/xcworkspace"
@@ -435,7 +434,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 		}
 		{
 
-			settings, err := xcode.ShowProjectBuildSettings(proj.Path, target.Name, configuration, "")
+			settings, err := proj.ProjectBuildSettings(target.Name, configuration, "")
 			if err != nil {
 				log.Debugf("Failed to fetch project settings (%s), error: %s", proj.Path, err)
 			}
@@ -456,7 +455,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 		// Find the TARGET_BUILD_DIR for the target
 		var splitTargetDir []string
 		{
-			buildSettings, err := xcode.ShowProjectBuildSettings(proj.Path, target.Name, configuration, simulatorName)
+			buildSettings, err := proj.ProjectBuildSettings(target.Name, configuration, simulatorName)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get project build settings, error: %s", err)
 			}
