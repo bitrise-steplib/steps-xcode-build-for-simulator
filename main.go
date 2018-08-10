@@ -456,7 +456,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 		// Find the TARGET_BUILD_DIR for the target
 		var splitTargetDir []string
 		{
-			buildSettings, err := proj.ProjectBuildSettings(target.Name, configuration, simulatorName)
+			buildSettings, err := xcode.ShowProjectBuildSettings(proj.Path, target.Name, configuration, simulatorName)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get project build settings, error: %s", err)
 			}
