@@ -1,7 +1,7 @@
 # Xcode Build for Simulator
 
 Runs Xcode Build command for simulators
-for iOS, tvOS or watchOS.
+for iOS, tvOS or watchOS. 
 
 ## How to use this Step
 
