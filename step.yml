@@ -3,15 +3,12 @@ summary: Runs Xcode Build command for simulators.
 description: |
   Runs Xcode Build command for simulators
   for iOS, tvOS or watchOS.
-
-  You can share it, run it on simulator or upload it to Appetize.io.
 website: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator
 source_code_url: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator
 support_url: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator/issues
 
 project_type_tags:
   - ios
-  - xamarin
   - react-native
   - cordova
   - ionic
@@ -159,13 +156,18 @@ inputs:
       - "no"
 
 outputs:
-  - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP:
+  - BITRISE_APP_DIR_PATH:
     opts:
-      title: The exported simulator builds'path
+      title: The generated app directory
+  - BITRISE_APP_DIR_PATH_LIST:
+    opts:
+      title: List of the generated app paths
+      summary: "List of the generated (and copied) app paths"
       description: |-
-        The exported simulator builds'path
+        This output will include the main target app's path + every dependent target's app path.
 
-        **NOTE** Every build exported path separated by `|`.
+
+        The paths are separated with `|` character, eg: `/deploy109787178/sample-apps-ios-workspace-swift.app|/deploy109787178/bitfall.sample-apps-ios-workspace-swift-watch.app`
   - BITRISE_XCODE_BUILD_RAW_RESULT_TEXT_PATH:
     opts:
       title: The full, raw build output file path

@@ -20,6 +20,7 @@ workflows:
     - OUTPUT_TOOL: xcodebuild
     - SIMULATOR_OS_VERSION: "latest"
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
     - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
     after_run:
     - _common
@@ -44,6 +45,7 @@ workflows:
     - OUTPUT_TOOL: xcpretty
     - SIMULATOR_OS_VERSION: latest
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/ios-xcode-8.0.app
     - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: $BITRISE_DEPLOY_DIR/ios-xcode-8.0.app
     before_run:
     - test_objc
@@ -61,6 +63,7 @@ workflows:
     - SIMULATOR_OS_VERSION: "latest"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/code-sign-test.app"
     - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: "$BITRISE_DEPLOY_DIR/code-sign-test.app|$BITRISE_DEPLOY_DIR/watchkit-app.app"
     after_run:
     - _common
@@ -76,6 +79,7 @@ workflows:
     - SIMULATOR_OS_VERSION: "latest"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
     - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
     after_run:
     - _common
@@ -91,6 +95,7 @@ workflows:
     - SIMULATOR_OS_VERSION: "11.4"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
     - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
     after_run:
     - _common
@@ -144,11 +149,18 @@ workflows:
             #!/bin/bash
             set -e
 
-            if [ $BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP != $BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED ] ; then
-              echo "[!] Missing Exported Artifact: should have:\n$BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED and have\n$BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP"
+            if [ $BITRISE_APP_DIR_PATH != $BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED ] ; then
+              echo "[!] Missing Exported Artifact: should have:\n$BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED and have\n$BITRISE_APP_DIR_PATH"
               exit 1
             else
-              echo "BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP -> $BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP"
+              echo "BITRISE_APP_DIR_PATH -> $BITRISE_APP_DIR_PATH"
+            fi
+
+            if [ $BITRISE_APP_DIR_PATH_LIST != $BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED ] ; then
+              echo "[!] Missing Exported Artifact: should have:\n$BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED and have\n$BITRISE_APP_DIR_PATH_LIST"
+              exit 1
+            else
+              echo "BITRISE_APP_DIR_PATH_LIST -> $BITRISE_APP_DIR_PATH_LIST"
             fi
 
   # ----------------------------------------------------------------
