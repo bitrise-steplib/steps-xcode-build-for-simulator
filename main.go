@@ -182,8 +182,11 @@ func main() {
 		xcodeBuildCmd.SetScheme(cfg.Scheme)
 		xcodeBuildCmd.SetConfiguration(cfg.Configuration)
 
+		// Disable the code signing for simulator build
+		xcodeBuildCmd.SetDisableCodesign(true)
+
 		// Set simulator destination and disable code signing for the build
-		xcodeBuildCmd.SetCustomOptions([]string{"-destination", "id=" + simulatorID, "PROVISIONING_PROFILE_SPECIFIER="})
+		xcodeBuildCmd.SetDestination("id=" + simulatorID)
 
 		// Clean build
 		if cfg.IsCleanBuild {
@@ -255,7 +258,7 @@ func main() {
 
 		// Export the artifact from the build dir to the output_dir
 		if exportedArtifacts, err = exportArtifacts(proj, cfg.Scheme, schemeBuildDir, cfg.Configuration, cfg.SimulatorPlatform, absOutputDir); err != nil {
-			failf("Failed to export the artifacts, error: %s", err)
+			log.Warnf("Failed to export the artifacts, error: %s", err)
 		}
 	}
 
@@ -263,23 +266,23 @@ func main() {
 	// Export output
 	fmt.Println()
 	log.Infof("Exporting outputs")
-	mainTargetAppPath, pathMap, err := exportOutput(exportedArtifacts)
-	if err != nil {
-		failf("Failed to export outputs (BITRISE_APP_DIR_PATH & BITRISE_APP_DIR_PATH_LIST), error: %s", err)
+	if len(exportedArtifacts) == 0 {
+		log.Warnf("No exportable artifact have found.")
+	} else {
+		mainTargetAppPath, pathMap, err := exportOutput(exportedArtifacts)
+		if err != nil {
+			failf("Failed to export outputs (BITRISE_APP_DIR_PATH & BITRISE_APP_DIR_PATH_LIST), error: %s", err)
+		}
+
+		log.Donef("BITRISE_APP_DIR_PATH -> %s", mainTargetAppPath)
+		log.Donef("BITRISE_APP_DIR_PATH_LIST -> %s", pathMap)
+
+		fmt.Println()
+		log.Donef("You can find the exported artifacts in: %s", absOutputDir)
 	}
-
-	log.Donef("BITRISE_APP_DIR_PATH -> %s", mainTargetAppPath)
-	log.Donef("BITRISE_APP_DIR_PATH_LIST -> %s", pathMap)
-
-	fmt.Println()
-	log.Donef("You can find the exported artifacts in: %s", absOutputDir)
 }
 
 func exportOutput(artifacts []string) (string, string, error) {
-	if len(artifacts) == 0 {
-		return "", "", nil
-	}
-
 	if err := tools.ExportEnvironmentWithEnvman("BITRISE_APP_DIR_PATH", artifacts[0]); err != nil {
 		return "", "", err
 	}
