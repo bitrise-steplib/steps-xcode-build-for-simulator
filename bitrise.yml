@@ -96,10 +96,10 @@ workflows:
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - SIMULATOR_OS_VERSION: "11.4"
-    - OUTPUT_TOOL: xcpretty
+    - OUTPUT_TOOL: xcodebuild
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED: ""
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: ""
+    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED: "$BITRISE_SOURCE_DIR/ddata/sample-apps-ios-workspace-swift.app"
+    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: "$BITRISE_SOURCE_DIR/ddata/sample-apps-ios-workspace-swift.app|$BITRISE_SOURCE_DIR/ddata/bitfall.sample-apps-ios-workspace-swift-watch.app"
     after_run:
     - _common
     - test_multi_target_workspace
@@ -220,43 +220,3 @@ workflows:
             #!/bin/bash
             set -ex
             stepman audit --step-yml ./step.yml
-
-  share-this-step:
-    envs:
-      # if you want to share this step into a StepLib
-      - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
-      - BITRISE_STEP_ID: $BITRISE_STEP_ID
-      - BITRISE_STEP_VERSION: $BITRISE_STEP_VERSION
-      - BITRISE_STEP_GIT_CLONE_URL: $BITRISE_STEP_GIT_CLONE_URL
-    description: |-
-      If this is the first time you try to share a Step you should
-      first call: $ bitrise share
-
-      This will print you a guide, and information about how Step sharing
-      works. Please read it at least once!
-
-      As noted in the Step sharing guide you'll have to fork the
-      StepLib you want to share this step into. Once you're done with forking
-      the repository you should set your own fork's git clone URL
-      in the `.bitrise.secrets.yml` file, or here in the `envs` section,
-      as the value of the `MY_STEPLIB_REPO_FORK_GIT_URL` environment.
-
-      You're now ready to share this Step, just make sure that
-      the `BITRISE_STEP_ID` and `BITRISE_STEP_VERSION`
-      environments are set to the desired values!
-
-      To share this Step into a StepLib you can just run: $ bitrise run share-this-step
-
-      Once it finishes the only thing left is to actually create a Pull Request,
-      the way described in the guide printed at the end of the process.
-    before_run:
-    - audit-this-step
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            bitrise share start -c "${MY_STEPLIB_REPO_FORK_GIT_URL}"
-            bitrise share create --stepid "${BITRISE_STEP_ID}" --tag "${BITRISE_STEP_VERSION}" --git "${BITRISE_STEP_GIT_CLONE_URL}"
-            bitrise share finish
