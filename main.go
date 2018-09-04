@@ -251,11 +251,9 @@ func main() {
 			failf("Failed to open xcproj - (%s), error:", cfg.ProjectPath, err)
 		}
 
-		var customOptions []string
-		for _, customOption := range strings.Split(cfg.XcodebuildOptions, " ") {
-			if customOption != "" {
-				customOptions = append(customOptions, customOption)
-			}
+		customOptions, err := shellquote.Split(cfg.XcodebuildOptions)
+		if err != nil {
+			failf("Failed to shell split XcodebuildOptions (%s), error: %s", cfg.XcodebuildOptions)
 		}
 
 		// Get the simulator name
