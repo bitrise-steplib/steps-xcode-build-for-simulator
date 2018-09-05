@@ -98,8 +98,8 @@ workflows:
     - SIMULATOR_OS_VERSION: "11.4"
     - OUTPUT_TOOL: xcodebuild
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
-    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_SOURCE_DIR/ddata/sample-apps-ios-workspace-swift.app"
-    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_SOURCE_DIR/ddata/sample-apps-ios-workspace-swift.app|$BITRISE_SOURCE_DIR/ddata/bitfall.sample-apps-ios-workspace-swift-watch.app"
+    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
     after_run:
     - _common
     - test_multi_target_workspace
@@ -170,22 +170,22 @@ workflows:
             #!/bin/bash
             set -e
 
-            if [ -z ${BITRISE_APP_DIR_PATH_EXPECTED} ] ; then
+            if [[ -z "$BITRISE_APP_DIR_PATH_EXPECTED" ]] ; then
               echo BITRISE_APP_DIR_PATH_EXPECTED is empty  
             else 
-              if [ -z ${BITRISE_APP_DIR_PATH+x} ] || [ ${BITRISE_APP_DIR_PATH+x} != ${BITRISE_APP_DIR_PATH_EXPECTED+x} ] ; then
-                echo "[!] Missing Exported Artifact: should have: $BITRISE_APP_DIR_PATH_EXPECTED and have: $BITRISE_APP_DIR_PATH"
+              if [[ -z "$BITRISE_APP_DIR_PATH" ]] || [[ "$BITRISE_APP_DIR_PATH" != "$BITRISE_APP_DIR_PATH_EXPECTED" ]] ; then
+                echo "[!] Missing Exported BITRISE_APP_DIR_PATH: should have: $BITRISE_APP_DIR_PATH_EXPECTED and have: $BITRISE_APP_DIR_PATH"
                 exit 1
               else
                 echo "BITRISE_APP_DIR_PATH -> $BITRISE_APP_DIR_PATH"
               fi
             fi
 
-            if [ -z ${BITRISE_APP_DIR_PATH_LIST_EXPECTED} ] ; then
+            if [[ -z "$BITRISE_APP_DIR_PATH_LIST_EXPECTED" ]] ; then
               echo BITRISE_APP_DIR_PATH_LIST_EXPECTED is empty  
             else 
-              if [ -z ${BITRISE_APP_DIR_PATH_LIST+x} ] || [ ${BITRISE_APP_DIR_PATH_LIST+x} != ${BITRISE_APP_DIR_PATH_LIST_EXPECTED+x} ] ; then
-                echo "[!] Missing Exported Artifact: should have: $BITRISE_APP_DIR_PATH_LIST_EXPECTED and have: $BITRISE_APP_DIR_PATH_LIST"
+              if [[ -z "$BITRISE_APP_DIR_PATH_LIST" ]] || [[ "$BITRISE_APP_DIR_PATH_LIST" != "$BITRISE_APP_DIR_PATH_LIST_EXPECTED" ]] ; then
+                echo "[!] Missing Exported BITRISE_APP_DIR_PATH_LIST: should have: $BITRISE_APP_DIR_PATH_LIST_EXPECTED and have: $BITRISE_APP_DIR_PATH_LIST"
                 exit 1
               else
                 echo "BITRISE_APP_DIR_PATH_LIST -> $BITRISE_APP_DIR_PATH_LIST"
