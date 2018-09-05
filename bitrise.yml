@@ -170,26 +170,18 @@ workflows:
             #!/bin/bash
             set -e
 
-            if [[ -z "$BITRISE_APP_DIR_PATH_EXPECTED" ]] ; then
-              echo BITRISE_APP_DIR_PATH_EXPECTED is empty  
-            else 
-              if [[ -z "$BITRISE_APP_DIR_PATH" ]] || [[ "$BITRISE_APP_DIR_PATH" != "$BITRISE_APP_DIR_PATH_EXPECTED" ]] ; then
-                echo "[!] Missing Exported BITRISE_APP_DIR_PATH: should have: $BITRISE_APP_DIR_PATH_EXPECTED and have: $BITRISE_APP_DIR_PATH"
-                exit 1
-              else
-                echo "BITRISE_APP_DIR_PATH -> $BITRISE_APP_DIR_PATH"
-              fi
+            if [[ "$BITRISE_APP_DIR_PATH_EXPECTED" != "$BITRISE_APP_DIR_PATH" ]] ; then 
+              echo "BITRISE_APP_DIR_PATH (\"$BITRISE_APP_DIR_PATH\") should be: \"$BITRISE_APP_DIR_PATH_EXPECTED\""
+              exit 1
+            else
+              echo "BITRISE_APP_DIR_PATH: $BITRISE_APP_DIR_PATH"
             fi
 
-            if [[ -z "$BITRISE_APP_DIR_PATH_LIST_EXPECTED" ]] ; then
-              echo BITRISE_APP_DIR_PATH_LIST_EXPECTED is empty  
-            else 
-              if [[ -z "$BITRISE_APP_DIR_PATH_LIST" ]] || [[ "$BITRISE_APP_DIR_PATH_LIST" != "$BITRISE_APP_DIR_PATH_LIST_EXPECTED" ]] ; then
-                echo "[!] Missing Exported BITRISE_APP_DIR_PATH_LIST: should have: $BITRISE_APP_DIR_PATH_LIST_EXPECTED and have: $BITRISE_APP_DIR_PATH_LIST"
-                exit 1
-              else
-                echo "BITRISE_APP_DIR_PATH_LIST -> $BITRISE_APP_DIR_PATH_LIST"
-              fi
+            if [[ "$BITRISE_APP_DIR_PATH_LIST_EXPECTED" != "$BITRISE_APP_DIR_PATH_LIST" ]] ; then 
+              echo "BITRISE_APP_DIR_PATH_LIST (\"$BITRISE_APP_DIR_PATH_LIST\") should be: \"$BITRISE_APP_DIR_PATH_LIST_EXPECTED\""
+              exit 1
+            else
+              echo "BITRISE_APP_DIR_PATH_LIST: $BITRISE_APP_DIR_PATH_LIST"
             fi
 
   # ----------------------------------------------------------------
