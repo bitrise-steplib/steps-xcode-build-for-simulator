@@ -272,9 +272,11 @@ func main() {
 			failf("Failed to get scheme (%s) build target dir, error: %s", err)
 		}
 
+		log.Debugf("Scheme build dir: %s", schemeBuildDir)
+
 		// Export the artifact from the build dir to the output_dir
 		if exportedArtifacts, err = exportArtifacts(proj, cfg.Scheme, schemeBuildDir, cfg.Configuration, cfg.SimulatorPlatform, absOutputDir); err != nil {
-			log.Warnf("Failed to export the artifacts, error: %s", err)
+			failf("Failed to export the artifacts, error: %s", err)
 		}
 	}
 
