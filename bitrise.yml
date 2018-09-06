@@ -13,6 +13,7 @@ app:
 workflows:
   test_objc:
     envs:
+    - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
     - BRANCH: master
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
@@ -20,8 +21,8 @@ workflows:
     - OUTPUT_TOOL: xcodebuild
     - SIMULATOR_OS_VERSION: "latest"
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
+    - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
     after_run:
     - _common
 
@@ -38,6 +39,7 @@ workflows:
     - errcheck:
     - go-test:
     envs:
+    - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
     - COMMIT: "52ca16a9cead25be8c95c54e7fd53ce8fd945330"
     - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
@@ -45,8 +47,8 @@ workflows:
     - OUTPUT_TOOL: xcpretty
     - SIMULATOR_OS_VERSION: latest
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/ios-xcode-8.0.app
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: $BITRISE_DEPLOY_DIR/ios-xcode-8.0.app
+    - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/ios-xcode-8.0.app
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/ios-xcode-8.0.app
     before_run:
     - test_objc
     after_run:
@@ -56,6 +58,7 @@ workflows:
     before_run:
     # - test_xcode_8
     envs:
+    - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
     - COMMIT: "ab36ed563bbc3125118e9f27df91474822dc0d46"
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
@@ -63,8 +66,8 @@ workflows:
     - SIMULATOR_OS_VERSION: "latest"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/code-sign-test.app"
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: "$BITRISE_DEPLOY_DIR/code-sign-test.app|$BITRISE_DEPLOY_DIR/watchkit-app.app"
+    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/code-sign-test.app"
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/code-sign-test.app|$BITRISE_DEPLOY_DIR/watchkit-app.app"
     after_run:
     - _common
 
@@ -72,6 +75,7 @@ workflows:
     before_run:
     - test_multi_target
     envs:
+    - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
     - BRANCH: master
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
@@ -79,15 +83,32 @@ workflows:
     - SIMULATOR_OS_VERSION: "latest"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
+    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
     after_run:
     - _common
+
+  test_multi_target_workspace_custom_derived_data_path:
+    envs:
+    - XCODEBUILD_OPTIONS: "-derivedDataPath ./ddata"
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+    - BRANCH: watch
+    - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
+    - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+    - SIMULATOR_OS_VERSION: "11.4"
+    - OUTPUT_TOOL: xcodebuild
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
+    after_run:
+    - _common
+    - test_multi_target_workspace
 
   test_multi_target_workspace:
     before_run:
     - test_workspace
     envs:
+    - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
     - BRANCH: watch
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
@@ -95,8 +116,8 @@ workflows:
     - SIMULATOR_OS_VERSION: "11.4"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
-    - BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
+    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
     after_run:
     - _common
 
@@ -149,18 +170,18 @@ workflows:
             #!/bin/bash
             set -e
 
-            if [ $BITRISE_APP_DIR_PATH != $BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED ] ; then
-              echo "[!] Missing Exported Artifact: should have:\n$BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_EXPECTED and have\n$BITRISE_APP_DIR_PATH"
+            if [[ "$BITRISE_APP_DIR_PATH_EXPECTED" != "$BITRISE_APP_DIR_PATH" ]] ; then 
+              echo "BITRISE_APP_DIR_PATH (\"$BITRISE_APP_DIR_PATH\") should be: \"$BITRISE_APP_DIR_PATH_EXPECTED\""
               exit 1
             else
-              echo "BITRISE_APP_DIR_PATH -> $BITRISE_APP_DIR_PATH"
+              echo "BITRISE_APP_DIR_PATH: $BITRISE_APP_DIR_PATH"
             fi
 
-            if [ $BITRISE_APP_DIR_PATH_LIST != $BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED ] ; then
-              echo "[!] Missing Exported Artifact: should have:\n$BITRISE_EXPORTED_SIMULATOR_BUILDS_PATH_MAP_EXPECTED and have\n$BITRISE_APP_DIR_PATH_LIST"
+            if [[ "$BITRISE_APP_DIR_PATH_LIST_EXPECTED" != "$BITRISE_APP_DIR_PATH_LIST" ]] ; then 
+              echo "BITRISE_APP_DIR_PATH_LIST (\"$BITRISE_APP_DIR_PATH_LIST\") should be: \"$BITRISE_APP_DIR_PATH_LIST_EXPECTED\""
               exit 1
             else
-              echo "BITRISE_APP_DIR_PATH_LIST -> $BITRISE_APP_DIR_PATH_LIST"
+              echo "BITRISE_APP_DIR_PATH_LIST: $BITRISE_APP_DIR_PATH_LIST"
             fi
 
   # ----------------------------------------------------------------
@@ -191,43 +212,3 @@ workflows:
             #!/bin/bash
             set -ex
             stepman audit --step-yml ./step.yml
-
-  share-this-step:
-    envs:
-      # if you want to share this step into a StepLib
-      - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
-      - BITRISE_STEP_ID: $BITRISE_STEP_ID
-      - BITRISE_STEP_VERSION: $BITRISE_STEP_VERSION
-      - BITRISE_STEP_GIT_CLONE_URL: $BITRISE_STEP_GIT_CLONE_URL
-    description: |-
-      If this is the first time you try to share a Step you should
-      first call: $ bitrise share
-
-      This will print you a guide, and information about how Step sharing
-      works. Please read it at least once!
-
-      As noted in the Step sharing guide you'll have to fork the
-      StepLib you want to share this step into. Once you're done with forking
-      the repository you should set your own fork's git clone URL
-      in the `.bitrise.secrets.yml` file, or here in the `envs` section,
-      as the value of the `MY_STEPLIB_REPO_FORK_GIT_URL` environment.
-
-      You're now ready to share this Step, just make sure that
-      the `BITRISE_STEP_ID` and `BITRISE_STEP_VERSION`
-      environments are set to the desired values!
-
-      To share this Step into a StepLib you can just run: $ bitrise run share-this-step
-
-      Once it finishes the only thing left is to actually create a Pull Request,
-      the way described in the guide printed at the end of the process.
-    before_run:
-    - audit-this-step
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            bitrise share start -c "${MY_STEPLIB_REPO_FORK_GIT_URL}"
-            bitrise share create --stepid "${BITRISE_STEP_ID}" --tag "${BITRISE_STEP_VERSION}" --git "${BITRISE_STEP_GIT_CLONE_URL}"
-            bitrise share finish

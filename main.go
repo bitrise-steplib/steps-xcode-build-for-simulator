@@ -182,8 +182,11 @@ func main() {
 		xcodeBuildCmd.SetScheme(cfg.Scheme)
 		xcodeBuildCmd.SetConfiguration(cfg.Configuration)
 
+		// Disable the code signing for simulator build
+		xcodeBuildCmd.SetDisableCodesign(true)
+
 		// Set simulator destination and disable code signing for the build
-		xcodeBuildCmd.SetCustomOptions([]string{"-destination", "id=" + simulatorID, "PROVISIONING_PROFILE_SPECIFIER="})
+		xcodeBuildCmd.SetDestination("id=" + simulatorID)
 
 		// Clean build
 		if cfg.IsCleanBuild {
@@ -248,10 +251,28 @@ func main() {
 			failf("Failed to open xcproj - (%s), error:", cfg.ProjectPath, err)
 		}
 
-		schemeBuildDir, err := buildTargetDirForScheme(proj, cfg.ProjectPath, cfg.Scheme, cfg.Configuration, cfg.SimulatorPlatform)
+		customOptions, err := shellquote.Split(cfg.XcodebuildOptions)
+		if err != nil {
+			failf("Failed to shell split XcodebuildOptions (%s), error: %s", cfg.XcodebuildOptions)
+		}
+
+		// Get the simulator name
+		{
+			simulatorName := iOSSimName
+			if cfg.SimulatorPlatform == "tvOS" {
+				simulatorName = tvOSSimName
+			}
+
+			customOptions = append(customOptions, "-sdk")
+			customOptions = append(customOptions, simulatorName)
+		}
+
+		schemeBuildDir, err := buildTargetDirForScheme(proj, cfg.ProjectPath, cfg.Scheme, cfg.Configuration, customOptions...)
 		if err != nil {
 			failf("Failed to get scheme (%s) build target dir, error: %s", err)
 		}
+
+		log.Debugf("Scheme build dir: %s", schemeBuildDir)
 
 		// Export the artifact from the build dir to the output_dir
 		if exportedArtifacts, err = exportArtifacts(proj, cfg.Scheme, schemeBuildDir, cfg.Configuration, cfg.SimulatorPlatform, absOutputDir); err != nil {
@@ -263,23 +284,23 @@ func main() {
 	// Export output
 	fmt.Println()
 	log.Infof("Exporting outputs")
-	mainTargetAppPath, pathMap, err := exportOutput(exportedArtifacts)
-	if err != nil {
-		failf("Failed to export outputs (BITRISE_APP_DIR_PATH & BITRISE_APP_DIR_PATH_LIST), error: %s", err)
+	if len(exportedArtifacts) == 0 {
+		log.Warnf("No exportable artifact have found.")
+	} else {
+		mainTargetAppPath, pathMap, err := exportOutput(exportedArtifacts)
+		if err != nil {
+			failf("Failed to export outputs (BITRISE_APP_DIR_PATH & BITRISE_APP_DIR_PATH_LIST), error: %s", err)
+		}
+
+		log.Donef("BITRISE_APP_DIR_PATH -> %s", mainTargetAppPath)
+		log.Donef("BITRISE_APP_DIR_PATH_LIST -> %s", pathMap)
+
+		fmt.Println()
+		log.Donef("You can find the exported artifacts in: %s", absOutputDir)
 	}
-
-	log.Donef("BITRISE_APP_DIR_PATH -> %s", mainTargetAppPath)
-	log.Donef("BITRISE_APP_DIR_PATH_LIST -> %s", pathMap)
-
-	fmt.Println()
-	log.Donef("You can find the exported artifacts in: %s", absOutputDir)
 }
 
 func exportOutput(artifacts []string) (string, string, error) {
-	if len(artifacts) == 0 {
-		return "", "", nil
-	}
-
 	if err := tools.ExportEnvironmentWithEnvman("BITRISE_APP_DIR_PATH", artifacts[0]); err != nil {
 		return "", "", err
 	}
@@ -361,13 +382,8 @@ func findBuiltProject(pth, schemeName, configurationName string) (xcodeproj.Xcod
 }
 
 // buildTargetDirForScheme returns the TARGET_BUILD_DIR for the provided scheme
-func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, configuration, simulatorPlatform string) (string, error) {
+func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, configuration string, customOptions ...string) (string, error) {
 	// Fetch project's main target from .xcodeproject
-	simulatorName := iOSSimName
-	if simulatorPlatform == "tvOS" {
-		simulatorName = tvOSSimName
-	}
-
 	var buildSettings serialized.Object
 	if xcodeproj.IsXcodeProj(projectPath) {
 		mainTarget, err := mainTargetOfScheme(proj, scheme)
@@ -375,7 +391,7 @@ func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, conf
 			return "", fmt.Errorf("failed to fetch project's targets, error: %s", err)
 		}
 
-		buildSettings, err = proj.ProjectBuildSettings(mainTarget.Name, configuration, simulatorName)
+		buildSettings, err = proj.TargetBuildSettings(mainTarget.Name, configuration, customOptions...)
 		if err != nil {
 			return "", fmt.Errorf("failed to parse project (%s) build settings, error: %s", projectPath, err)
 		}
@@ -385,7 +401,7 @@ func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, conf
 			return "", fmt.Errorf("Failed to open xcworkspace (%s), error: %s", projectPath, err)
 		}
 
-		buildSettings, err = workspace.WrokspaceBuildSettings(scheme, configuration, simulatorName)
+		buildSettings, err = workspace.SchemeBuildSettings(scheme, configuration, customOptions...)
 		if err != nil {
 			return "", fmt.Errorf("failed to parse workspace (%s) build settings, error: %s", projectPath, err)
 		}
@@ -403,7 +419,7 @@ func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, conf
 }
 
 // exportArtifacts exports the main target and it's .app dependencies.
-func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir string, configuration, simulatorPlatform, deployDir string) ([]string, error) {
+func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir string, configuration, simulatorPlatform, deployDir string, customOptions ...string) ([]string, error) {
 	var exportedArtifacts []string
 	splitSchemeDir := strings.Split(schemeBuildDir, "Build/")
 	if len(splitSchemeDir) != 2 {
@@ -434,7 +450,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 		}
 		{
 
-			settings, err := proj.ProjectBuildSettings(target.Name, configuration, "")
+			settings, err := proj.TargetBuildSettings(target.Name, configuration)
 			if err != nil {
 				log.Debugf("Failed to fetch project settings (%s), error: %s", proj.Path, err)
 			}
@@ -455,7 +471,8 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 		// Find the TARGET_BUILD_DIR for the target
 		var splitTargetDir []string
 		{
-			buildSettings, err := proj.ProjectBuildSettings(target.Name, configuration, simulatorName)
+			customOptions = []string{"-sdk", simulatorName}
+			buildSettings, err := proj.TargetBuildSettings(target.Name, configuration, customOptions...)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get project build settings, error: %s", err)
 			}

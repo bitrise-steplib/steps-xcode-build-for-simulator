@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 
-	"github.com/bitrise-io/go-utils/pathutil"
-
 	"github.com/bitrise-io/go-utils/fileutil"
+	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-tools/xcode-project/serialized"
 	"github.com/bitrise-tools/xcode-project/xcodebuild"
 	"github.com/bitrise-tools/xcode-project/xcscheme"
@@ -25,7 +25,7 @@ type XcodeProj struct {
 
 // TargetCodeSignEntitlementsPath ...
 func (p XcodeProj) TargetCodeSignEntitlementsPath(target, configuration string) (string, error) {
-	buildSettings, err := p.ProjectBuildSettings(target, configuration, "")
+	buildSettings, err := p.TargetBuildSettings(target, configuration)
 	if err != nil {
 		return "", err
 	}
@@ -60,7 +60,7 @@ func (p XcodeProj) TargetCodeSignEntitlements(target, configuration string) (ser
 
 // TargetInformationPropertyListPath ...
 func (p XcodeProj) TargetInformationPropertyListPath(target, configuration string) (string, error) {
-	buildSettings, err := p.ProjectBuildSettings(target, configuration, "")
+	buildSettings, err := p.TargetBuildSettings(target, configuration)
 	if err != nil {
 		return "", err
 	}
@@ -95,7 +95,7 @@ func (p XcodeProj) TargetInformationPropertyList(target, configuration string) (
 
 // TargetBundleID ...
 func (p XcodeProj) TargetBundleID(target, configuration string) (string, error) {
-	buildSettings, err := p.ProjectBuildSettings(target, configuration, "")
+	buildSettings, err := p.TargetBuildSettings(target, configuration)
 	if err != nil {
 		return "", err
 	}
@@ -106,7 +106,7 @@ func (p XcodeProj) TargetBundleID(target, configuration string) (string, error) 
 	}
 
 	if bundleID != "" {
-		return bundleID, nil
+		return resolve(bundleID, buildSettings)
 	}
 
 	informationPropertyList, err := p.TargetInformationPropertyList(target, configuration)
@@ -123,12 +123,65 @@ func (p XcodeProj) TargetBundleID(target, configuration string) (string, error) 
 		return "", errors.New("no PRODUCT_BUNDLE_IDENTIFIER build settings nor CFBundleIdentifier information property found")
 	}
 
-	return bundleID, nil
+	return resolve(bundleID, buildSettings)
 }
 
-// ProjectBuildSettings ...
-func (p XcodeProj) ProjectBuildSettings(target, configuration, sdk string) (serialized.Object, error) {
-	return xcodebuild.ShowProjectBuildSettings(p.Path, target, configuration, sdk)
+func resolve(bundleID string, buildSettings serialized.Object) (string, error) {
+	resolvedBundleIDs := map[string]bool{}
+	resolved := bundleID
+	for true {
+		var err error
+		resolved, err = expand(resolved, buildSettings)
+		if err != nil {
+			return "", err
+		}
+
+		if !strings.Contains(resolved, "$") {
+			return resolved, nil
+		}
+
+		_, ok := resolvedBundleIDs[resolved]
+		if ok {
+			return "", fmt.Errorf("bundle id reference cycle found")
+		}
+		resolvedBundleIDs[resolved] = true
+	}
+	return "", fmt.Errorf("failed to resolve bundle id: %s", bundleID)
+}
+
+func expand(bundleID string, buildSettings serialized.Object) (string, error) {
+	if !strings.Contains(bundleID, "$") {
+		return bundleID, nil
+	}
+
+	pattern := `(.*)\$\((.*)\)(.*)`
+	re := regexp.MustCompile(pattern)
+	match := re.FindStringSubmatch(bundleID)
+	if len(match) != 4 {
+		return "", fmt.Errorf("%s does not match to pattern: %s", bundleID, pattern)
+	}
+
+	prefix := match[1]
+	suffix := match[3]
+	envKey := match[2]
+
+	split := strings.Split(envKey, ":")
+	envKey = split[0]
+
+	envValue, err := buildSettings.String(envKey)
+	if err != nil {
+		if serialized.IsKeyNotFoundError(err) {
+			return "", fmt.Errorf("%s build settings not found", envKey)
+		}
+		return "", err
+	}
+
+	return prefix + envValue + suffix, nil
+}
+
+// TargetBuildSettings ...
+func (p XcodeProj) TargetBuildSettings(target, configuration string, customOptions ...string) (serialized.Object, error) {
+	return xcodebuild.ShowProjectBuildSettings(p.Path, target, configuration, customOptions...)
 }
 
 // Scheme ...
@@ -211,7 +264,7 @@ func Open(pth string) (XcodeProj, error) {
 
 	p, err := parseProj(projectID, objects)
 	if err != nil {
-		return XcodeProj{}, nil
+		return XcodeProj{}, err
 	}
 
 	return XcodeProj{
