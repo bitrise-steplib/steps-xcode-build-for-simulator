@@ -246,12 +246,7 @@ func main() {
 		fmt.Println()
 		log.Infof("Copy artifacts from Derived Data to %s", absOutputDir)
 
-		var proj xcodeproj.XcodeProj
-		if xcodeproj.IsXcodeProj(cfg.ProjectPath) {
-			proj, err = xcodeproj.Open(cfg.ProjectPath)
-		} else {
-			proj, _, err = findBuiltProject(cfg.ProjectPath, cfg.Scheme, cfg.Configuration)
-		}
+		proj, _, err := findBuiltProject(cfg.ProjectPath, cfg.Scheme, cfg.Configuration)
 
 		if err != nil {
 			failf("Failed to open xcproj - (%s), error:", cfg.ProjectPath, err)
@@ -363,7 +358,7 @@ func findBuiltProject(pth, schemeName, configurationName string) (xcodeproj.Xcod
 
 	var archiveEntry xcscheme.BuildActionEntry
 	for _, entry := range scheme.BuildAction.BuildActionEntries {
-		if entry.BuildForArchiving != "YES" {
+		if entry.BuildForArchiving != "YES" || !entry.BuildableReference.IsAppReference() {
 			continue
 		}
 		archiveEntry = entry
