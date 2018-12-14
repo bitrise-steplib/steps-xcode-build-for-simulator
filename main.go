@@ -520,7 +520,13 @@ func mainTargetOfScheme(proj xcodeproj.XcodeProj, scheme string) (xcodeproj.Targ
 		return xcodeproj.Target{}, fmt.Errorf("Failed to found scheme (%s) in project", scheme)
 	}
 
-	blueIdent := sch.BuildAction.BuildActionEntries[0].BuildableReference.BlueprintIdentifier
+	var blueIdent string
+	for _, entry := range sch.BuildAction.BuildActionEntries {
+		if entry.BuildableReference.IsAppReference() {
+			blueIdent = entry.BuildableReference.BlueprintIdentifier
+			break
+		}
+	}
 
 	// Search for the main target
 	for _, t := range projTargets {
