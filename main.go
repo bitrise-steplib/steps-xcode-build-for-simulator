@@ -247,7 +247,6 @@ func main() {
 		log.Infof("Copy artifacts from Derived Data to %s", absOutputDir)
 
 		proj, _, err := findBuiltProject(cfg.ProjectPath, cfg.Scheme, cfg.Configuration)
-
 		if err != nil {
 			failf("Failed to open xcproj - (%s), error:", cfg.ProjectPath, err)
 		}
