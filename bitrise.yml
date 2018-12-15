@@ -124,11 +124,11 @@ workflows:
 
   test_react_native:
     envs:
-    - XCODEBUILD_OPTIONS:
-    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - BRANCH: watch
-    - BITRISE_PROJECT_PATH: /Users/akosbirmacher/Develop/React/github/BirmacherAkos/SampleProjectReactNative/ios/SampleProjectReactNative.xcodeproj #sample-apps-ios-workspace-swift.xcworkspace
-    - BITRISE_SCHEME: SampleProjectReactNative # sample-apps-ios-workspace-swift
+    - XCODEBUILD_OPTIONS: -UseModernBuildSystem=NO
+    - SAMPLE_APP_URL: https://github.com/BirmacherAkos/sample-project-react-native.git
+    - BRANCH: master
+    - BITRISE_PROJECT_PATH: ios/SampleProjectReactNative.xcodeproj
+    - BITRISE_SCHEME: SampleProjectReactNative
     - SIMULATOR_OS_VERSION: "12.1"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
@@ -140,11 +140,11 @@ workflows:
 
   test_react_native_workspace:
     envs:
-    - XCODEBUILD_OPTIONS:
-    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - BRANCH: watch
-    - BITRISE_PROJECT_PATH: /Users/akosbirmacher/Develop/React/github/BirmacherAkos/SampleProjectReactNative_workspace/ios/SampleProjectReactNative.xcworkspace #sample-apps-ios-workspace-swift.xcworkspace
-    - BITRISE_SCHEME: SampleProjectReactNative # sample-apps-ios-workspace-swift
+    - XCODEBUILD_OPTIONS: -UseModernBuildSystem=NO
+    - SAMPLE_APP_URL: https://github.com/BirmacherAkos/sample-project-react-native-xcworkspace.git
+    - BRANCH: master
+    - BITRISE_PROJECT_PATH: ios/SampleProjectReactNative.xcworkspace
+    - BITRISE_SCHEME: SampleProjectReactNative
     - SIMULATOR_OS_VERSION: "12.1"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
@@ -186,7 +186,37 @@ workflows:
             git fetch || exit 1
             [[ -n "${COMMIT}" ]] && git checkout "${COMMIT}" || git checkout "${BRANCH}"
             
-    - certificate-and-profile-installer:
+    - script:
+        title: Install yarn deps if needed
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+
+            if [ -f yarn.lock ]; then
+              echo "yarn.lock file found in the root dir. Runing yarn install."
+              yarn install
+            else 
+              echo "No yarn.lock file found in the root dir."
+            fi
+    - script:
+        title: Install cocoapods if needed
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+
+            if [ -f Podfile.lock ]; then
+              echo "Podfile.lock file found in the root dir. Runing pod install."
+              pod install
+            elif [ -f ios/Podfile.lock ]; then
+              echo "Podfile.lock file found in the /ios dir. Runing pod install."
+              cd ios
+              pod install
+              cd ..
+            else
+              echo "No Podfile.lock file found."
+            fi
     - path::./:
         inputs:
         - simulator_os_version: $SIMULATOR_OS_VERSION

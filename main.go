@@ -483,7 +483,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 				return nil, fmt.Errorf("failed to get build target dir for target (%s), error: %s", target.Name, err)
 			}
 
-			log.Debugf("Target (%s) TARGET_BUILD_DIR: %s", buildDir)
+			log.Debugf("Target (%s) TARGET_BUILD_DIR: %s", target.Name, buildDir)
 
 			splitTargetDir = strings.Split(buildDir, "Build/")
 			if len(splitTargetDir) != 2 {
