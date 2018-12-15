@@ -1,16 +1,33 @@
-format_version: 5
+format_version: 6
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
   envs:
-  - BITRISE_STEP_ID: xcode-build-for-simulator
-  - BITRISE_STEP_VERSION: 0.9.0
   - BITRISE_STEP_GIT_CLONE_URL: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator.git
   - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
 
   - ORIG_BITRISE_SOURCE_DIR: $BITRISE_SOURCE_DIR
 
 workflows:
+  ci:
+    before_run:
+    - audit-this-step
+    steps:
+    - go-list:
+    - golint:
+    - errcheck:
+    - go-test:
+    after_run:
+    - test_objc
+    - test_multi_target
+    - test_workspace
+    - test_multi_target_workspace_custom_derived_data_path
+    - test_multi_target_workspace
+    - test_react_native
+    - test_react_native_workspace
+
+    
+
   test_objc:
     envs:
     - XCODEBUILD_OPTIONS:
@@ -53,8 +70,6 @@ workflows:
     - _common
 
   test_multi_target:
-    before_run:
-    # - test_xcode_8
     envs:
     - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
@@ -70,8 +85,6 @@ workflows:
     - _common
 
   test_workspace:
-    before_run:
-    - test_multi_target
     envs:
     - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
@@ -93,32 +106,28 @@ workflows:
     - BRANCH: watch
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-    - SIMULATOR_OS_VERSION: "12.1"
+    - SIMULATOR_OS_VERSION: "11.4"
     - OUTPUT_TOOL: xcodebuild
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
     after_run:
     - _common
-    - test_multi_target_workspace
 
   test_multi_target_workspace:
-    before_run:
-    - test_workspace
     envs:
     - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
     - BRANCH: watch
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-    - SIMULATOR_OS_VERSION: "12.1"
+    - SIMULATOR_OS_VERSION: "11.4"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
     after_run:
     - _common
-    - test_react_native
 
   test_react_native:
     envs:
@@ -127,14 +136,13 @@ workflows:
     - BRANCH: master
     - BITRISE_PROJECT_PATH: ios/SampleProjectReactNative.xcodeproj
     - BITRISE_SCHEME: SampleProjectReactNative
-    - SIMULATOR_OS_VERSION: "12.1"
+    - SIMULATOR_OS_VERSION: "11.4"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
     after_run:
     - _common
-    - test_react_native_workspace
 
   test_react_native_workspace:
     envs:
@@ -143,7 +151,7 @@ workflows:
     - BRANCH: master
     - BITRISE_PROJECT_PATH: ios/SampleProjectReactNative.xcworkspace
     - BITRISE_SCHEME: SampleProjectReactNative
-    - SIMULATOR_OS_VERSION: "12.1"
+    - SIMULATOR_OS_VERSION: "11.4"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
