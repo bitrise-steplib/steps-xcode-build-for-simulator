@@ -132,7 +132,7 @@ workflows:
   test_react_native:
     envs:
     - XCODEBUILD_OPTIONS: -UseModernBuildSystem=NO
-    - SAMPLE_APP_URL: https://github.com/BirmacherAkos/sample-project-react-native.git
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-project-react-native.git
     - BRANCH: master
     - BITRISE_PROJECT_PATH: ios/SampleProjectReactNative.xcodeproj
     - BITRISE_SCHEME: SampleProjectReactNative
@@ -147,7 +147,7 @@ workflows:
   test_react_native_workspace:
     envs:
     - XCODEBUILD_OPTIONS: -UseModernBuildSystem=NO
-    - SAMPLE_APP_URL: https://github.com/BirmacherAkos/sample-project-react-native-xcworkspace.git
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-project-react-native-xcworkspace.git
     - BRANCH: master
     - BITRISE_PROJECT_PATH: ios/SampleProjectReactNative.xcworkspace
     - BITRISE_SCHEME: SampleProjectReactNative
