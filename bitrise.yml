@@ -35,8 +35,6 @@ workflows:
         - path: "$ORIG_BITRISE_SOURCE_DIR"
         - is_create_path: true
     - go-list:
-    - golint:
-    - errcheck:
     - go-test:
     envs:
     - XCODEBUILD_OPTIONS:
