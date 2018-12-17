@@ -357,7 +357,7 @@ func findBuiltProject(pth, schemeName, configurationName string) (xcodeproj.Xcod
 
 	var archiveEntry xcscheme.BuildActionEntry
 	for _, entry := range scheme.BuildAction.BuildActionEntries {
-		if entry.BuildForArchiving != "YES" {
+		if entry.BuildForArchiving != "YES" || !entry.BuildableReference.IsAppReference() {
 			continue
 		}
 		archiveEntry = entry
@@ -482,7 +482,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 				return nil, fmt.Errorf("failed to get build target dir for target (%s), error: %s", target.Name, err)
 			}
 
-			log.Debugf("Target (%s) TARGET_BUILD_DIR: %s", buildDir)
+			log.Debugf("Target (%s) TARGET_BUILD_DIR: %s", target.Name, buildDir)
 
 			splitTargetDir = strings.Split(buildDir, "Build/")
 			if len(splitTargetDir) != 2 {
@@ -520,7 +520,13 @@ func mainTargetOfScheme(proj xcodeproj.XcodeProj, scheme string) (xcodeproj.Targ
 		return xcodeproj.Target{}, fmt.Errorf("Failed to found scheme (%s) in project", scheme)
 	}
 
-	blueIdent := sch.BuildAction.BuildActionEntries[0].BuildableReference.BlueprintIdentifier
+	var blueIdent string
+	for _, entry := range sch.BuildAction.BuildActionEntries {
+		if entry.BuildableReference.IsAppReference() {
+			blueIdent = entry.BuildableReference.BlueprintIdentifier
+			break
+		}
+	}
 
 	// Search for the main target
 	for _, t := range projTargets {
