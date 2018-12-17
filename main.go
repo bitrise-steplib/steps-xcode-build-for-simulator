@@ -49,7 +49,7 @@ type Config struct {
 	OutputTool         string `env:"output_tool,opt[xcpretty,xcodebuild]"`
 	SimulatorDevice    string `env:"simulator_device,required"`
 	SimulatorOsVersion string `env:"simulator_os_version,required"`
-	SimulatorPlatform  string `env:"simulator_platform,opt[iOS, tvOS]"`
+	SimulatorPlatform  string `env:"simulator_platform,opt[iOS,tvOS]"`
 	VerboseLog         bool   `env:"verbose_log,required"`
 }
 
