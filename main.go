@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -53,6 +54,8 @@ type Config struct {
 	VerboseLog         bool   `env:"verbose_log,required"`
 }
 
+var verbose bool
+
 func main() {
 	//
 	// Config
@@ -65,6 +68,7 @@ func main() {
 	fmt.Println()
 
 	log.SetEnableDebugLog(cfg.VerboseLog)
+	verbose = cfg.VerboseLog
 
 	//
 	// Determined configs
@@ -422,8 +426,12 @@ func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, conf
 func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir string, configuration, simulatorPlatform, deployDir string, customOptions ...string) ([]string, error) {
 	var exportedArtifacts []string
 	splitSchemeDir := strings.Split(schemeBuildDir, "Build/")
+	var schemeDir string
 	if len(splitSchemeDir) != 2 {
-		return nil, fmt.Errorf("failed to parse scheme's build target dir: %s", schemeBuildDir)
+		log.Debugf("failed to parse scheme's build target dir: %s. Using the original build dir (%s)\n", schemeBuildDir, schemeBuildDir)
+		schemeDir = schemeBuildDir
+	} else {
+		schemeDir = filepath.Join(splitSchemeDir[0], "Build")
 	}
 
 	mainTarget, err := mainTargetOfScheme(proj, scheme)
@@ -469,7 +477,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 
 		//
 		// Find the TARGET_BUILD_DIR for the target
-		var splitTargetDir []string
+		var targetDir string
 		{
 			customOptions = []string{"-sdk", simulatorName}
 			buildSettings, err := proj.TargetBuildSettings(target.Name, configuration, customOptions...)
@@ -484,9 +492,12 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 
 			log.Debugf("Target (%s) TARGET_BUILD_DIR: %s", target.Name, buildDir)
 
-			splitTargetDir = strings.Split(buildDir, "Build/")
+			splitTargetDir := strings.Split(buildDir, "Build/")
 			if len(splitTargetDir) != 2 {
-				return nil, fmt.Errorf("failed to parse build target dir (%s) for target: %s", buildDir, target.Name)
+				log.Debugf("failed to parse build target dir (%s) for target: %s. Using the original build dir (%s)\n", buildDir, target.Name, buildDir)
+				targetDir = buildDir
+			} else {
+				targetDir = splitTargetDir[1]
 			}
 
 		}
@@ -496,16 +507,37 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 		{
 
 			// Parent dir (main target's build dir by the provided scheme) + current target's build dir
-			sourceDir := filepath.Join(splitSchemeDir[0], "Build", splitTargetDir[1])
-
-			source := filepath.Join(sourceDir, target.ProductReference.Path)
+			sourceDirs := []string{filepath.Join(schemeDir, targetDir), schemeDir, filepath.Join(path.Dir(proj.Path), schemeDir)}
 			destination := filepath.Join(deployDir, target.ProductReference.Path)
 
-			if err := util.CopyDir(source, destination); err != nil {
-				return nil, fmt.Errorf("failed to copy the generated app to the Deploy dir")
+			var exported bool
+			for _, sourceDir := range sourceDirs {
+				source := filepath.Join(sourceDir, target.ProductReference.Path)
+				log.Debugf("searching for the generated app in %s", source)
+
+				cmd := util.CopyDir(source, destination)
+				log.Debugf("$ " + cmd.PrintableCommandArgs())
+
+				if err := cmd.Run(); err != nil {
+					log.Debugf("failed to copy the generated app from (%s) to the Deploy dir\n", source)
+					continue
+				}
+
+				if verbose {
+					cmd.SetStdout(os.Stdout)
+					cmd.SetStderr(os.Stderr)
+				}
+
+				exported = true
+				break
 			}
 
-			exportedArtifacts = append(exportedArtifacts, destination)
+			if exported {
+				exportedArtifacts = append(exportedArtifacts, destination)
+				log.Debugf("Succes\n")
+			} else {
+				return nil, fmt.Errorf("failed to copy the generated app to the Deploy dir")
+			}
 		}
 	}
 
