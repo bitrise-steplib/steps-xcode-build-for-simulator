@@ -54,8 +54,6 @@ type Config struct {
 	VerboseLog         bool   `env:"verbose_log,required"`
 }
 
-var verbose bool
-
 func main() {
 	//
 	// Config
@@ -68,7 +66,6 @@ func main() {
 	fmt.Println()
 
 	log.SetEnableDebugLog(cfg.VerboseLog)
-	verbose = cfg.VerboseLog
 
 	//
 	// Determined configs
@@ -528,17 +525,23 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 				source := filepath.Join(sourceDir, target.ProductReference.Path)
 				log.Debugf("searching for the generated app in %s", source)
 
-				cmd := util.CopyDir(source, destination)
-				log.Debugf("$ " + cmd.PrintableCommandArgs())
+				if exists, err := pathutil.IsPathExists(source); err != nil {
+					log.Debugf("failed to check if the path exists: (%s), error: ", source, err)
+					continue
 
-				if err := cmd.Run(); err != nil {
-					log.Debugf("failed to copy the generated app from (%s) to the Deploy dir\n", source)
+				} else if !exists {
+					log.Debugf("path not exists: %s", source)
 					continue
 				}
 
-				if verbose {
-					cmd.SetStdout(os.Stdout)
-					cmd.SetStderr(os.Stderr)
+				// Copy the build artifact
+				cmd := util.CopyDir(source, destination)
+				cmd.SetStdout(os.Stdout)
+				cmd.SetStderr(os.Stderr)
+				log.Debugf("$ " + cmd.PrintableCommandArgs())
+				if err := cmd.Run(); err != nil {
+					log.Debugf("failed to copy the generated app from (%s) to the Deploy dir\n", source)
+					continue
 				}
 
 				exported = true
