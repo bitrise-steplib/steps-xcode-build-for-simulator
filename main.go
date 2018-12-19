@@ -427,6 +427,11 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 	var exportedArtifacts []string
 	splitSchemeDir := strings.Split(schemeBuildDir, "Build/")
 	var schemeDir string
+
+	// Split the scheme's TARGET_BUILD_DIR by the BUILD dir. This path will be the base path for the targets's TARGET_BUILD_DIR
+	//
+	// xcodebuild -showBuildSettings will produce different outputs if you call it with a -workspace & -scheme or if you call it with a -project & -target.
+	// We need to call xcodebuild -showBuildSettings for all of the project targets to find the build artifacts (iOS, watchOS etc...)
 	if len(splitSchemeDir) != 2 {
 		log.Debugf("failed to parse scheme's build target dir: %s. Using the original build dir (%s)\n", schemeBuildDir, schemeBuildDir)
 		schemeDir = schemeBuildDir
@@ -492,6 +497,10 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 
 			log.Debugf("Target (%s) TARGET_BUILD_DIR: %s", target.Name, buildDir)
 
+			// Split the scheme's TARGET_BUILD_DIR by the BUILD dir. This path will be joined to the `schemeBuildDir`
+			//
+			// xcodebuild -showBuildSettings will produce different outputs if you call it with a -workspace & -scheme or if you call it with a -project & -target.
+			// We need to call xcodebuild -showBuildSettings for all of the project targets to find the build artifacts (iOS, watchOS etc...)
 			splitTargetDir := strings.Split(buildDir, "Build/")
 			if len(splitTargetDir) != 2 {
 				log.Debugf("failed to parse build target dir (%s) for target: %s. Using the original build dir (%s)\n", buildDir, target.Name, buildDir)
@@ -506,10 +515,14 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 		// Copy - export
 		{
 
-			// Parent dir (main target's build dir by the provided scheme) + current target's build dir
+			// Search for the generated build artifact in the next dirs:
+			// Parent dir (main target's build dir by the provided scheme) + current target's build dir (This is a default for a nativ iOS project)
+			// current target's build dir (If the project settings uses a custom TARGET_BUILD_DIR env)
+			// .xcodeproj's directory + current target's build dir (If the project settings uses a custom TARGET_BUILD_DIR env & the project is not in the root dir)
 			sourceDirs := []string{filepath.Join(schemeDir, targetDir), schemeDir, filepath.Join(path.Dir(proj.Path), schemeDir)}
 			destination := filepath.Join(deployDir, target.ProductReference.Path)
 
+			// Search for the generated build artifact
 			var exported bool
 			for _, sourceDir := range sourceDirs {
 				source := filepath.Join(sourceDir, target.ProductReference.Path)
