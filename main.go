@@ -534,7 +534,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 
 			if exported {
 				exportedArtifacts = append(exportedArtifacts, destination)
-				log.Debugf("Succes\n")
+				log.Debugf("Success\n")
 			} else {
 				return nil, fmt.Errorf("failed to copy the generated app to the Deploy dir")
 			}
