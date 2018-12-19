@@ -25,6 +25,7 @@ workflows:
     - test_multi_target_workspace
     - test_react_native
     - test_react_native_workspace
+    - test_react_native_custom_target_build_dir
 
     
 
@@ -152,6 +153,21 @@ workflows:
     - BITRISE_PROJECT_PATH: ios/SampleProjectReactNative.xcworkspace
     - BITRISE_SCHEME: SampleProjectReactNative
     - SIMULATOR_OS_VERSION: "11.4"
+    - OUTPUT_TOOL: xcpretty
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
+    after_run:
+    - _common
+
+  test_react_native_custom_target_build_dir:
+    envs:
+    - XCODEBUILD_OPTIONS: -UseModernBuildSystem=NO
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-project-react-native.git
+    - BRANCH: custom_target_build_dir
+    - BITRISE_PROJECT_PATH: ios/SampleProjectReactNative.xcodeproj
+    - BITRISE_SCHEME: SampleProjectReactNative
+    - SIMULATOR_OS_VERSION: "latest"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
