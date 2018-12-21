@@ -2,8 +2,6 @@ package util
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"time"
 
 	"github.com/bitrise-io/go-utils/command"
@@ -25,12 +23,8 @@ func LogWithTimestamp(coloringFunc coloringFunc, format string, v ...interface{}
 }
 
 // CopyDir ...
-func CopyDir(source string, destination string) error {
+func CopyDir(source string, destination string) *command.Model {
 	copyCmd := command.New("cp", "-R", source, destination)
-	copyCmd.SetStdout(os.Stdout)
-	copyCmd.SetStderr(os.Stderr)
 
-	log.Printf(copyCmd.PrintableCommandArgs())
-
-	return copyCmd.Run()
+	return copyCmd
 }
