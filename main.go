@@ -7,22 +7,23 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/bitrise-io/go-steputils/stepconf"
+	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/colorstring"
+	"github.com/bitrise-io/go-utils/errorutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/stringutil"
+	"github.com/bitrise-io/go-xcode/simulator"
+	"github.com/bitrise-io/go-xcode/utility"
+	"github.com/bitrise-io/go-xcode/xcodebuild"
+	"github.com/bitrise-io/go-xcode/xcpretty"
 	"github.com/bitrise-io/steps-xcode-archive/utils"
+	"github.com/bitrise-io/xcode-project/serialized"
+	"github.com/bitrise-io/xcode-project/xcodeproj"
+	"github.com/bitrise-io/xcode-project/xcscheme"
+	"github.com/bitrise-io/xcode-project/xcworkspace"
 	"github.com/bitrise-steplib/steps-xcode-build-for-simulator/util"
-	"github.com/bitrise-tools/go-steputils/stepconf"
-	"github.com/bitrise-tools/go-steputils/tools"
-	"github.com/bitrise-tools/go-xcode/simulator"
-	"github.com/bitrise-tools/go-xcode/utility"
-	"github.com/bitrise-tools/go-xcode/xcodebuild"
-	"github.com/bitrise-tools/go-xcode/xcpretty"
-	"github.com/bitrise-tools/xcode-project/serialized"
-	"github.com/bitrise-tools/xcode-project/xcodeproj"
-	"github.com/bitrise-tools/xcode-project/xcscheme"
-	"github.com/bitrise-tools/xcode-project/xcworkspace"
 	shellquote "github.com/kballard/go-shellquote"
 )
 
@@ -100,10 +101,22 @@ func main() {
 				fmt.Println()
 				log.Printf("Installing xcpretty")
 
-				if err := xcpretty.Install(); err != nil {
-					log.Warnf("Failed to install xcpretty, error: %s", err)
-					log.Printf("Switching to xcodebuild for output tool")
+				if cmds, err := xcpretty.Install(); err != nil {
+					log.Warnf("Failed to create xcpretty install command: %s", err)
+					log.Warnf("Switching to xcodebuild for output tool")
 					outputTool = "xcodebuild"
+				} else {
+					for _, cmd := range cmds {
+						if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
+							if errorutil.IsExitStatusError(err) {
+								log.Warnf("%s failed: %s", out)
+							} else {
+								log.Warnf("%s failed: %s", err)
+							}
+							log.Warnf("Switching to xcodebuild for output tool")
+							outputTool = "xcodebuild"
+						}
+					}
 				}
 			}
 		}
@@ -337,11 +350,10 @@ func findBuiltProject(pth, schemeName, configurationName string) (xcodeproj.Xcod
 			return xcodeproj.XcodeProj{}, "", err
 		}
 
-		var ok bool
 		var containerProject string
-		scheme, containerProject, ok = workspace.Scheme(schemeName)
-		if !ok {
-			return xcodeproj.XcodeProj{}, "", fmt.Errorf("no scheme found with name: %s in workspace: %s", schemeName, pth)
+		scheme, containerProject, err = workspace.Scheme(schemeName)
+		if err != nil {
+			return xcodeproj.XcodeProj{}, "", fmt.Errorf("no scheme found with name: %s in workspace: %s, error: %s", schemeName, pth, err)
 		}
 		schemeContainerDir = filepath.Dir(containerProject)
 	} else {
