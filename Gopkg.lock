@@ -71,7 +71,7 @@
 [[projects]]
   branch = "master"
   digest = "1:c9f615b31da2dc5e89bacbf0e76357b36f390266997e1a10946b2546ea086cc5"
-  name = "github.com/bitrise-tools/go-xcode"
+  name = "github.com/bitrise-io/go-xcode"
   packages = [
     "certificateutil",
     "exportoptions",
@@ -87,7 +87,7 @@
 [[projects]]
   branch = "master"
   digest = "1:791ce0f7d09a4c628614a5e3d097589406e8870f03bfa0db199b2d80cd2fb670"
-  name = "github.com/bitrise-tools/xcode-project"
+  name = "github.com/bitrise-io/xcode-project"
   packages = [
     "serialized",
     "xcodebuild",
