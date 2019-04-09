@@ -34,11 +34,13 @@ func ProjectEntitlementsByBundleID(pth, schemeName, configurationName string) (m
 			return nil, err
 		}
 
-		var ok bool
 		var containerProject string
-		scheme, containerProject, ok = workspace.Scheme(schemeName)
-		if !ok {
-			return nil, fmt.Errorf("no scheme found with name: %s in workspace: %s", schemeName, pth)
+		scheme, containerProject, err = workspace.Scheme(schemeName)
+		if err != nil {
+			if xcworkspace.IsSchemeNotFoundError(err) {
+				return nil, err
+			}
+			return nil, fmt.Errorf("failed to find scheme with name: %s in workspace: %s, error: %s", schemeName, pth, err)
 		}
 		schemeContainerDir = filepath.Dir(containerProject)
 	} else {
@@ -53,16 +55,8 @@ func ProjectEntitlementsByBundleID(pth, schemeName, configurationName string) (m
 		return nil, fmt.Errorf("no configuration provided nor default defined for the scheme's (%s) archive action", schemeName)
 	}
 
-	var archiveEntry xcscheme.BuildActionEntry
-	for _, entry := range scheme.BuildAction.BuildActionEntries {
-		if entry.BuildForArchiving != "YES" {
-			continue
-		}
-		archiveEntry = entry
-		break
-	}
-
-	if archiveEntry.BuildableReference.BlueprintIdentifier == "" {
+	archiveEntry, ok := scheme.AppBuildActionEntry()
+	if !ok {
 		return nil, fmt.Errorf("archivable entry not found")
 	}
 
@@ -81,7 +75,7 @@ func ProjectEntitlementsByBundleID(pth, schemeName, configurationName string) (m
 		return nil, fmt.Errorf("target not found: %s", archiveEntry.BuildableReference.BlueprintIdentifier)
 	}
 
-	targets := append([]xcodeproj.Target{mainTarget}, mainTarget.DependentTargets()...)
+	targets := append([]xcodeproj.Target{mainTarget}, mainTarget.DependentExecutableProductTargets()...)
 
 	entitlementsByBundleID := map[string]serialized.Object{}
 

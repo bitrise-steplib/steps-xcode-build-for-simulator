@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-utils/colorstring"
+	"github.com/bitrise-io/go-utils/errorutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/stringutil"
@@ -100,10 +101,22 @@ func main() {
 				fmt.Println()
 				log.Printf("Installing xcpretty")
 
-				if err := xcpretty.Install(); err != nil {
-					log.Warnf("Failed to install xcpretty, error: %s", err)
-					log.Printf("Switching to xcodebuild for output tool")
+				if cmds, err := xcpretty.Install(); err != nil {
+					log.Warnf("Failed to create xcpretty install command: %s", err)
+					log.Warnf("Switching to xcodebuild for output tool")
 					outputTool = "xcodebuild"
+				} else {
+					for _, cmd := range cmds {
+						if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
+							if errorutil.IsExitStatusError(err) {
+								log.Warnf("%s failed: %s", out)
+							} else {
+								log.Warnf("%s failed: %s", err)
+							}
+							log.Warnf("Switching to xcodebuild for output tool")
+							outputTool = "xcodebuild"
+						}
+					}
 				}
 			}
 		}
@@ -337,11 +350,10 @@ func findBuiltProject(pth, schemeName, configurationName string) (xcodeproj.Xcod
 			return xcodeproj.XcodeProj{}, "", err
 		}
 
-		var ok bool
 		var containerProject string
-		scheme, containerProject, ok = workspace.Scheme(schemeName)
-		if !ok {
-			return xcodeproj.XcodeProj{}, "", fmt.Errorf("no scheme found with name: %s in workspace: %s", schemeName, pth)
+		scheme, containerProject, err = workspace.Scheme(schemeName)
+		if err != nil {
+			return xcodeproj.XcodeProj{}, "", fmt.Errorf("no scheme found with name: %s in workspace: %s, error: %s", schemeName, pth, err)
 		}
 		schemeContainerDir = filepath.Dir(containerProject)
 	} else {
