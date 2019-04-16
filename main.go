@@ -18,7 +18,7 @@ import (
 	"github.com/bitrise-io/go-xcode/utility"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	"github.com/bitrise-io/go-xcode/xcpretty"
-	"github.com/bitrise-io/steps-xcode-archive/utils"
+	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/bitrise-io/xcode-project/serialized"
 	"github.com/bitrise-io/xcode-project/xcodeproj"
 	"github.com/bitrise-io/xcode-project/xcscheme"

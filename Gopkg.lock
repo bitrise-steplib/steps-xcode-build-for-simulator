@@ -10,7 +10,7 @@
     "tools",
   ]
   pruneopts = "UT"
-  revision = "ec226b2359fcd806be64f0ad2217d8e741a1ff11"
+  revision = "cecc766da84859e37e780d9d1c416f0f3993e6b1"
 
 [[projects]]
   branch = "master"
@@ -35,7 +35,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1c2268878912e8af987f6ae9049ed05a2cbf67f5d1925aebd314a56f4abd3ec8"
+  digest = "1:86e39ee8596d07917fbb7c2bc7e30121984dc987b317daeb38b8685404296f4f"
   name = "github.com/bitrise-io/go-xcode"
   packages = [
     "certificateutil",
@@ -49,15 +49,7 @@
     "xcpretty",
   ]
   pruneopts = "UT"
-  revision = "14789f961d5a1161e98a6500f0e4c4b4ff6490c6"
-
-[[projects]]
-  digest = "1:a3b80faf27fcaa1ab4a647028b12f5d98c126d0fbe6a48838727aeef17f89249"
-  name = "github.com/bitrise-io/steps-xcode-archive"
-  packages = ["utils"]
-  pruneopts = "UT"
-  revision = "c3ea1dc97351e1a5f83528ce4dd2aafda2b06720"
-  version = "2.4.21"
+  revision = "04a02fcd3c06c698d47ce4e27dbe105d6ea8eadc"
 
 [[projects]]
   branch = "master"
@@ -74,38 +66,12 @@
   revision = "b724e9a2dda0585b6ceb6dbf9eb84ddbbf135335"
 
 [[projects]]
-  digest = "1:0321fca4a7ff94ce19daac87e7511c62c2da36ab3d1232271b15fdce23140156"
-  name = "github.com/bitrise-steplib/steps-xcode-build-for-simulator"
-  packages = ["util"]
-  pruneopts = "UT"
-  revision = "414d08f760b1ff51773fe3eda8728667e630288b"
-  version = "0.9.4"
-
-[[projects]]
   branch = "master"
-  digest = "1:92d13579e7d81a0933bfbbee15107ef9d58307320126bdfa9e712e0abb295bc3"
-  name = "github.com/bitrise-io/go-xcode"
-  packages = [
-    "certificateutil",
-    "exportoptions",
-    "plistutil",
-    "profileutil",
-  ]
+  digest = "1:a16c993e2cafb19eb874281603bd0398df126c3ef2ed4d2acce08f16876061dc"
+  name = "github.com/bitrise-steplib/steps-xcode-archive"
+  packages = ["utils"]
   pruneopts = "UT"
-  revision = "14789f961d5a1161e98a6500f0e4c4b4ff6490c6"
-
-[[projects]]
-  branch = "master"
-  digest = "1:c579b348dfe2b7c10dc9c2ce87fe2c8885ba98b665639fbd993c85f533d64d97"
-  name = "github.com/bitrise-io/xcode-project"
-  packages = [
-    "serialized",
-    "xcodeproj",
-    "xcscheme",
-    "xcworkspace",
-  ]
-  pruneopts = "UT"
-  revision = "b724e9a2dda0585b6ceb6dbf9eb84ddbbf135335"
+  revision = "23665685d131c54fa4bc16294d529a900f45bca6"
 
 [[projects]]
   branch = "master"
@@ -182,17 +148,15 @@
     "github.com/bitrise-io/go-utils/log",
     "github.com/bitrise-io/go-utils/pathutil",
     "github.com/bitrise-io/go-utils/stringutil",
-    "github.com/bitrise-io/go-xcode/profileutil",
     "github.com/bitrise-io/go-xcode/simulator",
     "github.com/bitrise-io/go-xcode/utility",
     "github.com/bitrise-io/go-xcode/xcodebuild",
     "github.com/bitrise-io/go-xcode/xcpretty",
-    "github.com/bitrise-io/steps-xcode-archive/utils",
     "github.com/bitrise-io/xcode-project/serialized",
     "github.com/bitrise-io/xcode-project/xcodeproj",
     "github.com/bitrise-io/xcode-project/xcscheme",
     "github.com/bitrise-io/xcode-project/xcworkspace",
-    "github.com/bitrise-steplib/steps-xcode-build-for-simulator/util",
+    "github.com/bitrise-steplib/steps-xcode-archive/utils",
     "github.com/kballard/go-shellquote",
   ]
   solver-name = "gps-cdcl"
