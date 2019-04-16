@@ -18,11 +18,11 @@ import (
 	"github.com/bitrise-io/go-xcode/utility"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	"github.com/bitrise-io/go-xcode/xcpretty"
-	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/bitrise-io/xcode-project/serialized"
 	"github.com/bitrise-io/xcode-project/xcodeproj"
 	"github.com/bitrise-io/xcode-project/xcscheme"
 	"github.com/bitrise-io/xcode-project/xcworkspace"
+	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/bitrise-steplib/steps-xcode-build-for-simulator/util"
 	shellquote "github.com/kballard/go-shellquote"
 )
@@ -40,19 +40,20 @@ const (
 
 // Config ...
 type Config struct {
-	ProjectPath        string `env:"project_path,required"`
-	Scheme             string `env:"scheme,required"`
-	Configuration      string `env:"configuration,required"`
-	ArtifactName       string `env:"artifact_name"`
-	XcodebuildOptions  string `env:"xcodebuild_options"`
-	Workdir            string `env:"workdir"`
-	OutputDir          string `env:"output_dir,required"`
-	IsCleanBuild       bool   `env:"is_clean_build,opt[yes,no]"`
-	OutputTool         string `env:"output_tool,opt[xcpretty,xcodebuild]"`
-	SimulatorDevice    string `env:"simulator_device,required"`
-	SimulatorOsVersion string `env:"simulator_os_version,required"`
-	SimulatorPlatform  string `env:"simulator_platform,opt[iOS,tvOS]"`
-	VerboseLog         bool   `env:"verbose_log,required"`
+	ProjectPath               string `env:"project_path,required"`
+	Scheme                    string `env:"scheme,required"`
+	Configuration             string `env:"configuration,required"`
+	ArtifactName              string `env:"artifact_name"`
+	XcodebuildOptions         string `env:"xcodebuild_options"`
+	Workdir                   string `env:"workdir"`
+	OutputDir                 string `env:"output_dir,required"`
+	IsCleanBuild              bool   `env:"is_clean_build,opt[yes,no]"`
+	OutputTool                string `env:"output_tool,opt[xcpretty,xcodebuild]"`
+	SimulatorDevice           string `env:"simulator_device,required"`
+	SimulatorOsVersion        string `env:"simulator_os_version,required"`
+	SimulatorPlatform         string `env:"simulator_platform,opt[iOS,tvOS]"`
+	DisableIndexWhileBuilding bool   `env:"disable_index_while_building,opt[yes,no]"`
+	VerboseLog                bool   `env:"verbose_log,required"`
 }
 
 func main() {
@@ -215,6 +216,9 @@ func main() {
 			}
 			xcodeBuildCmd.SetCustomOptions(options)
 		}
+
+		// Disabe indexing while building
+		xcodeBuildCmd.SetDisableIndexWhileBuilding(cfg.DisableIndexWhileBuilding)
 
 		// Output tool
 		{
