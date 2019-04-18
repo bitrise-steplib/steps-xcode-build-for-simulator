@@ -1,4 +1,7 @@
 
+[[constraint]]
+  branch = "master"
+  name = "github.com/bitrise-io/go-steputils"
 
 [[constraint]]
   branch = "master"
@@ -6,12 +9,24 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/bitrise-tools/go-steputils"
+  name = "github.com/bitrise-io/go-xcode"
+
+[[constraint]]
+  name = "github.com/bitrise-steplib/steps-xcode-archive"
+  branch = "master"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/bitrise-io/xcode-project"
+
+[[constraint]]
+  name = "github.com/bitrise-steplib/steps-xcode-build-for-simulator"
+  branch = "master"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/kballard/go-shellquote"
 
 [prune]
   go-tests = true
   unused-packages = true
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/bitrise-tools/xcode-project"

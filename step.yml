@@ -100,6 +100,26 @@ inputs:
         in the value of this input Xcode will simply use the Configuration
         specified by the Scheme and will silently ignore this parameter!
       is_required: "true"
+  - disable_index_while_building: "yes"
+    opts:
+      title: Disable indexing during the build
+      summary: Could make the build faster by disabling the indexing during the build run.
+      description: |-
+        Could make the build faster by adding `COMPILER_INDEX_STORE_ENABLE=NO` flag to the `xcodebuild` command which will disable the indexing during the build.
+
+        Indexing is needed for
+        
+        * Autocomplete
+        * Ability to quickly jump to definition
+        * Get class and method help by alt clicking.
+
+        Which are not needed in CI environment.
+
+        **Note:** In Xcode you can turn off the `Index-WhileBuilding` feature  by disabling the `Enable Index-WhileBuilding Functionality` in the `Build Settings`.<br/>
+        In CI environment you can disable it by adding `COMPILER_INDEX_STORE_ENABLE=NO` flag to the `xcodebuild` command.
+      value_options:
+        - "yes"
+        - "no"
   - xcodebuild_options: ""
     opts:
       category: Debug
