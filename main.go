@@ -357,6 +357,15 @@ func findBuiltProject(pth, schemeName, configurationName string) (xcodeproj.Xcod
 
 		var containerProject string
 		scheme, containerProject, err = workspace.Scheme(schemeName)
+		log.Printf("1#########################################")
+		schemeJson, _ := json.Marshal(scheme)
+		log.Printf(string(schemeJson))
+		log.Printf("1#########################################")
+		log.Printf("2#########################################")
+		containerProjectJson, _ := json.Marshal(containerProject)
+		log.Printf(string(containerProjectJson))
+		log.Printf("2#########################################")
+
 		if err != nil {
 			return xcodeproj.XcodeProj{}, "", fmt.Errorf("no scheme found with name: %s in workspace: %s, error: %s", schemeName, pth, err)
 		}
