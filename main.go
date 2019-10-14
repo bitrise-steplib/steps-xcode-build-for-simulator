@@ -6,6 +6,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"encoding/json"
 
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-steputils/tools"
@@ -464,9 +465,9 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 
 		log.Printf("#########################################")
 		targetJson, _ := json.Marshal(target)
-		log.Println(string(targetJson))
+		log.Printf(string(targetJson))
 		log.Printf("#########################################")
-		
+
 		// Is the target an application? -> If not skip the export
 		if !strings.HasSuffix(target.ProductReference.Path, ".app") {
 			log.Printf("Target (%s) is not an .app - SKIP", target.Name)
