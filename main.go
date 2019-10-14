@@ -463,11 +463,6 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 	for _, target := range targets {
 		log.Donef(target.Name + "...")
 
-		log.Printf("#########################################")
-		targetJson, _ := json.Marshal(target)
-		log.Printf(string(targetJson))
-		log.Printf("#########################################")
-
 		// Is the target an application? -> If not skip the export
 		if !strings.HasSuffix(target.ProductReference.Path, ".app") {
 			log.Printf("Target (%s) is not an .app - SKIP", target.Name)
@@ -555,6 +550,11 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 					log.Debugf("path not exists: %s", source)
 					// Also check to see if a path exists with the target name
 					source := filepath.Join(sourceDir, target.Name + ".app")
+
+					log.Printf("#########################################")
+					targetJson, _ := json.Marshal(target)
+					log.Printf(string(targetJson))
+					log.Printf("#########################################")
 
 					if exists, err := pathutil.IsPathExists(source); err != nil {
 						log.Debugf("failed to check if the path exists: (%s), error: ", source, err)
