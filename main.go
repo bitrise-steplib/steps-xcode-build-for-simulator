@@ -547,7 +547,15 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 
 				} else if !exists {
 					log.Debugf("path not exists: %s", source)
-					continue
+					// Also check to see if a path exists with the target name
+					source := filepath.Join(sourceDir, strings.Join(target.Name, ".app"))
+
+					if exists, err := pathutil.IsPathExists(source); err != nil {
+						log.Debugf("failed to check if the path exists: (%s), error: ", source, err)
+						continue
+					} else if !exists {
+						continue
+					}
 				}
 
 				// Copy the build artifact
