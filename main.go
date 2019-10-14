@@ -554,6 +554,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 						log.Debugf("failed to check if the path exists: (%s), error: ", source, err)
 						continue
 					} else if !exists {
+						log.Debugf("2nd path does not exist: %s", source)
 						continue
 					}
 				}
