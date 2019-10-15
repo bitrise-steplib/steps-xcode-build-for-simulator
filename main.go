@@ -6,7 +6,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"encoding/json"
 
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-steputils/tools"
@@ -588,7 +587,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 				} else if !exists {
 					log.Debugf("path not exists: %s", source)
 					// Also check to see if a path exists with the target name
-					wrapperName, err := wrapperNameForScheme(proj, cfg.ProjectPath, cfg.Scheme, cfg.Configuration, customOptions...)
+					wrapperName, err := wrapperNameForScheme(proj, proj.Path, scheme, configuration, customOptions...)
 					if err != nil {
 						failf("Failed to get scheme (%s) build target dir, error: %s", err)
 					}
