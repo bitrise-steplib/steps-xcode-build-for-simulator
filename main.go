@@ -439,9 +439,11 @@ func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, conf
 
 	// WRAPPER_NAME
 	log.Printf("44#########################################")
-	log.Printf("buildSettings.String("TARGET_BUILD_DIR")")
-	schemeBuildDir, err := buildSettings.String("WRAPPER_NAME")
+	wrapperName, err := buildSettings.String("WRAPPER_NAME")
+	log.Printf(wrapperName)
 	
+	schemeBuildDir, err := buildSettings.String("TARGET_BUILD_DIR")
+
 	if err != nil {
 		return "", fmt.Errorf("failed to parse build settings, error: %s", err)
 	}
