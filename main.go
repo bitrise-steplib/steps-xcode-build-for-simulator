@@ -591,7 +591,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 					if err != nil {
 						failf("Failed to get scheme (%s) build target dir, error: %s", err)
 					}
-					source := filepath.Join(sourceDir, wrapperName)
+					source = filepath.Join(sourceDir, wrapperName)
 
 					if exists, err := pathutil.IsPathExists(source); err != nil {
 						log.Debugf("failed to check if the path exists: (%s), error: ", source, err)
