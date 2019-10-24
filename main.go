@@ -9,7 +9,6 @@ import (
 
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-steputils/tools"
-	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/bitrise-io/go-utils/errorutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
@@ -17,6 +16,7 @@ import (
 	"github.com/bitrise-io/go-xcode/simulator"
 	"github.com/bitrise-io/go-xcode/utility"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
+	cache "github.com/bitrise-io/go-xcode/xcodecache"
 	"github.com/bitrise-io/go-xcode/xcpretty"
 	"github.com/bitrise-io/xcode-project/serialized"
 	"github.com/bitrise-io/xcode-project/xcodeproj"
@@ -69,22 +69,22 @@ func main() {
 
 	log.SetEnableDebugLog(cfg.VerboseLog)
 
+	// Detect Xcode major version
+	xcodebuildVersion, err := utility.GetXcodeVersion()
+	if err != nil {
+		failf("Failed to determin xcode version, error: %s", err)
+	}
+	log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.Version, xcodebuildVersion.BuildVersion)
+
+	xcodeMajorVersion := xcodebuildVersion.MajorVersion
+	if xcodeMajorVersion < minSupportedXcodeMajorVersion {
+		failf("Invalid xcode major version (%d), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
+	}
+
 	//
 	// Determined configs
 	{
 		log.Infof("Step determined configs:")
-
-		// Detect Xcode major version
-		xcodebuildVersion, err := utility.GetXcodeVersion()
-		if err != nil {
-			failf("Failed to determin xcode version, error: %s", err)
-		}
-		log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.Version, xcodebuildVersion.BuildVersion)
-
-		xcodeMajorVersion := xcodebuildVersion.MajorVersion
-		if xcodeMajorVersion < minSupportedXcodeMajorVersion {
-			failf("Invalid xcode major version (%d), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
-		}
 
 		// Detect xcpretty version
 		outputTool := cfg.OutputTool
@@ -185,15 +185,20 @@ func main() {
 		fmt.Println()
 		log.Infof("Running build")
 
+		absProjectPath, err := filepath.Abs(cfg.ProjectPath)
+		if err != nil {
+			failf("Failed to get absolute project path: %s", err)
+		}
+
 		var isWorkspace bool
-		if xcworkspace.IsWorkspace(cfg.ProjectPath) {
+		if xcworkspace.IsWorkspace(absProjectPath) {
 			isWorkspace = true
-		} else if !xcodeproj.IsXcodeProj(cfg.ProjectPath) {
-			failf("Project file extension should be .xcodeproj or .xcworkspace, but got: %s", filepath.Ext(cfg.ProjectPath))
+		} else if !xcodeproj.IsXcodeProj(absProjectPath) {
+			failf("Project file extension should be .xcodeproj or .xcworkspace, but got: %s", filepath.Ext(absProjectPath))
 		}
 
 		// Build for simulator command
-		xcodeBuildCmd := xcodebuild.NewCommandBuilder(cfg.ProjectPath, isWorkspace, xcodebuild.BuildAction)
+		xcodeBuildCmd := xcodebuild.NewCommandBuilder(absProjectPath, isWorkspace, xcodebuild.BuildAction)
 		xcodeBuildCmd.SetScheme(cfg.Scheme)
 		xcodeBuildCmd.SetConfiguration(cfg.Configuration)
 
@@ -220,40 +225,29 @@ func main() {
 		// Disabe indexing while building
 		xcodeBuildCmd.SetDisableIndexWhileBuilding(cfg.DisableIndexWhileBuilding)
 
-		// Output tool
-		{
+		var swiftPackagesPath string
+		if xcodeMajorVersion >= 11 {
+			var err error
+			if swiftPackagesPath, err = cache.SwiftPackagesPath(absProjectPath); err != nil {
+				failf("Failed to get Swift Packages path, error: %s", err)
+			}
+		}
+
+		rawXcodeBuildOut, err := runBuildCommandWithRetry(xcodeBuildCmd, cfg.OutputTool == "xcpretty", swiftPackagesPath)
+		if err != nil {
 			if cfg.OutputTool == "xcpretty" {
-				xcprettyCmd := xcpretty.New(xcodeBuildCmd)
+				log.Errorf("\nLast lines of the Xcode's build log:")
+				fmt.Println(stringutil.LastNLines(rawXcodeBuildOut, 10))
 
-				util.LogWithTimestamp(colorstring.Green, "$ %s", xcprettyCmd.PrintableCmd())
-				fmt.Println()
-
-				if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
-					log.Errorf("\nLast lines of the Xcode's build log:")
-					fmt.Println(stringutil.LastNLines(rawXcodebuildOut, 10))
-
-					if err := utils.ExportOutputFileContent(rawXcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
-						log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
-					} else {
-						log.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log is also available in the raw-xcodebuild-output.log
-	The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable
-	(value: %s)`, rawXcodebuildOutputLogPath)
-					}
-
-					failf("Build failed, error: %s", err)
-				}
-			} else {
-				util.LogWithTimestamp(colorstring.Green, "$ %s", xcodeBuildCmd.PrintableCmd())
-				fmt.Println()
-
-				buildRootCmd := xcodeBuildCmd.Command()
-				buildRootCmd.SetStdout(os.Stdout)
-				buildRootCmd.SetStderr(os.Stderr)
-
-				if err := buildRootCmd.Run(); err != nil {
-					failf("Build failed, error: %s", err)
+				if err := utils.ExportOutputFileContent(rawXcodeBuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
+					log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
+				} else {
+					log.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log is also available in the raw-xcodebuild-output.log
+The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable
+(value: %s)`, rawXcodebuildOutputLogPath)
 				}
 			}
+			failf("Build failed, error: %s", err)
 		}
 	}
 
