@@ -327,7 +327,7 @@ func exportOutput(artifacts []string) (string, string, error) {
 
 // findBuiltProject returns the Xcode project which will be built for the provided scheme
 func findBuiltProject(pth, schemeName, configurationName string) (xcodeproj.XcodeProj, string, error) {
-	var scheme xcscheme.Scheme
+	var scheme *xcscheme.Scheme
 	var schemeContainerDir string
 
 	if xcodeproj.IsXcodeProj(pth) {
@@ -336,10 +336,9 @@ func findBuiltProject(pth, schemeName, configurationName string) (xcodeproj.Xcod
 			return xcodeproj.XcodeProj{}, "", err
 		}
 
-		var ok bool
-		scheme, ok = project.Scheme(schemeName)
-		if !ok {
-			return xcodeproj.XcodeProj{}, "", fmt.Errorf("no scheme found with name: %s in project: %s", schemeName, pth)
+		scheme, _, err = project.Scheme(schemeName)
+		if err != nil {
+			return xcodeproj.XcodeProj{}, "", fmt.Errorf("failed to get scheme (%s) from project (%s), error: %s", schemeName, pth, err)
 		}
 		schemeContainerDir = filepath.Dir(pth)
 	} else if xcworkspace.IsWorkspace(pth) {
@@ -573,9 +572,9 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 // mainTargetOfScheme return the main target
 func mainTargetOfScheme(proj xcodeproj.XcodeProj, scheme string) (xcodeproj.Target, error) {
 	projTargets := proj.Proj.Targets
-	sch, ok := proj.Scheme(scheme)
-	if !ok {
-		return xcodeproj.Target{}, fmt.Errorf("Failed to found scheme (%s) in project", scheme)
+	sch, _, err := proj.Scheme(scheme)
+	if err != nil {
+		return xcodeproj.Target{}, fmt.Errorf("failed to get scheme (%s) from project (%s), error: %s", scheme, proj.Path, err)
 	}
 
 	var blueIdent string
