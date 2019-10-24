@@ -83,11 +83,11 @@ func main() {
 
 	//
 	// Determined configs
+	outputTool := cfg.OutputTool
 	{
 		log.Infof("Step determined configs:")
 
 		// Detect xcpretty version
-		outputTool := cfg.OutputTool
 		if outputTool == "xcpretty" {
 			fmt.Println()
 			log.Infof("Checking if output tool (xcpretty) is installed")
@@ -125,7 +125,7 @@ func main() {
 		if outputTool == "xcpretty" {
 			xcprettyVersion, err := xcpretty.Version()
 			if err != nil {
-				log.Warnf("Failed to determin xcpretty version, error: %s", err)
+				log.Warnf("Failed to determine xcpretty version, error: %s", err)
 				log.Printf("Switching to xcodebuild for output tool")
 				outputTool = "xcodebuild"
 			}
@@ -233,9 +233,9 @@ func main() {
 			}
 		}
 
-		rawXcodeBuildOut, err := runBuildCommandWithRetry(xcodeBuildCmd, cfg.OutputTool == "xcpretty", swiftPackagesPath)
+		rawXcodeBuildOut, err := runBuildCommandWithRetry(xcodeBuildCmd, outputTool == "xcpretty", swiftPackagesPath)
 		if err != nil {
-			if cfg.OutputTool == "xcpretty" {
+			if outputTool == "xcpretty" {
 				log.Errorf("\nLast lines of the Xcode's build log:")
 				fmt.Println(stringutil.LastNLines(rawXcodeBuildOut, 10))
 
