@@ -23,9 +23,10 @@ workflows:
     - test_workspace
     - test_multi_target_workspace_custom_derived_data_path
     - test_multi_target_workspace
-    - test_react_native
-    - test_react_native_workspace
-    - test_react_native_custom_target_build_dir
+    # Disabled react-ntaive due ti detox installation failure
+    # - test_react_native
+    # - test_react_native_workspace
+    # - test_react_native_custom_target_build_dir
 
 
   test_objc:
