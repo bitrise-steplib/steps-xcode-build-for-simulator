@@ -43,11 +43,13 @@ func prepareCommand(xcodeCmd *xcodebuild.CommandBuilder, useXcpretty bool, outpu
 func runCommand(buildCmd *xcodebuild.CommandBuilder, useXcpretty bool) (string, error) {
 	var output bytes.Buffer
 	xcodebuildCmd, xcprettyCmd := prepareCommand(buildCmd, useXcpretty, &output)
-	util.LogWithTimestamp(colorstring.Green, "$ %s", buildCmd.PrintableCmd())
-	fmt.Println()
 
 	if xcprettyCmd != nil {
+		util.LogWithTimestamp(colorstring.Green, "$ %s", xcprettyCmd.PrintableCmd())
+		fmt.Println()
 		return xcprettyCmd.Run()
 	}
+	util.LogWithTimestamp(colorstring.Green, "$ %s", xcodebuildCmd.PrintableCommandArgs())
+	fmt.Println()
 	return output.String(), xcodebuildCmd.Run()
 }
