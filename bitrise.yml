@@ -204,7 +204,6 @@ workflows:
 
             if [ -f Podfile.lock ]; then
               echo "Podfile.lock file found in the root dir. Runing pod install."
-              brew
               pod install
             elif [ -f ios/Podfile.lock ]; then
               echo "Podfile.lock file found in the /ios dir. Runing pod install."
