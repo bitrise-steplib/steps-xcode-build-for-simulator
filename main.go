@@ -233,7 +233,7 @@ func main() {
 			}
 		}
 
-		rawXcodeBuildOut, err := runBuildCommandWithRetry(xcodeBuildCmd, outputTool == "xcpretty", swiftPackagesPath)
+		rawXcodeBuildOut, err := runCommandWithRetry(xcodeBuildCmd, outputTool == "xcpretty", swiftPackagesPath)
 		if err != nil {
 			if outputTool == "xcpretty" {
 				log.Errorf("\nLast lines of the Xcode's build log:")

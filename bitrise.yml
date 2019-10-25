@@ -23,7 +23,7 @@ workflows:
     - test_workspace
     - test_multi_target_workspace_custom_derived_data_path
     - test_multi_target_workspace
-    # Disabled react-ntaive due ti detox installation failure
+    # Disabled react-native due to detox installation failure
     # - test_react_native
     # - test_react_native_workspace
     # - test_react_native_custom_target_build_dir
@@ -204,6 +204,7 @@ workflows:
 
             if [ -f Podfile.lock ]; then
               echo "Podfile.lock file found in the root dir. Runing pod install."
+              brew
               pod install
             elif [ -f ios/Podfile.lock ]; then
               echo "Podfile.lock file found in the /ios dir. Runing pod install."
