@@ -19,8 +19,8 @@ import (
 func runCommandWithRetry(cmd *xcodebuild.CommandBuilder, useXcpretty bool, swiftPackagesPath string) (string, error) {
 	output, err := runCommand(cmd, useXcpretty)
 	if err != nil && swiftPackagesPath != "" && strings.Contains(output, cache.SwiftPackagesStateInvalid) {
-		log.Warnf("Archive failed, swift packages cache is in an invalid state, error: %s", err)
-		log.RWarnf("xcode-archive", "swift-packages-cache-invalid", nil, "swift packages cache is in an invalid state")
+		log.Warnf("Build failed, swift packages cache is in an invalid state, error: %s", err)
+		log.RWarnf("xcode-build-for-simulator", "swift-packages-cache-invalid", nil, "swift packages cache is in an invalid state")
 		if err := os.RemoveAll(swiftPackagesPath); err != nil {
 			return output, fmt.Errorf("failed to remove invalid Swift package caches, error: %s", err)
 		}
