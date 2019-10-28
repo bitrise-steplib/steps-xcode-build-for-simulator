@@ -23,7 +23,6 @@ workflows:
     - test_workspace
     - test_multi_target_workspace_custom_derived_data_path
     - test_multi_target_workspace
-    - test_swiftpm
     # Disabled react-native due to detox installation failure
     # - test_react_native
     # - test_react_native_workspace
