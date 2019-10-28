@@ -23,6 +23,7 @@ workflows:
     - test_workspace
     - test_multi_target_workspace_custom_derived_data_path
     - test_multi_target_workspace
+    - test_swiftpm
     # Disabled react-native due to detox installation failure
     # - test_react_native
     # - test_react_native_workspace
@@ -146,6 +147,21 @@ workflows:
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
+    after_run:
+    - _common
+
+  test_swiftpm:
+    envs:
+    - XCODEBUILD_OPTIONS:
+    - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-swiftpm.git
+    - BRANCH: master
+    - BITRISE_PROJECT_PATH: sample-swiftpm.xcodeproj
+    - BITRISE_SCHEME: "sample swiftpm"
+    - OUTPUT_TOOL: xcodebuild
+    - SIMULATOR_OS_VERSION: "latest"
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/sample-swiftpm.app
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/sample-swiftpm.app
     after_run:
     - _common
 

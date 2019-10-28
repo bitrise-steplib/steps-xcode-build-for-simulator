@@ -54,6 +54,7 @@ type Config struct {
 	SimulatorPlatform         string `env:"simulator_platform,opt[iOS,tvOS]"`
 	DisableIndexWhileBuilding bool   `env:"disable_index_while_building,opt[yes,no]"`
 	VerboseLog                bool   `env:"verbose_log,required"`
+	CacheLevel                string `env:"cache_level,opt[none,swift_packages]"`
 }
 
 func main() {
@@ -179,16 +180,16 @@ func main() {
 		}
 	}
 
+	absProjectPath, err := filepath.Abs(cfg.ProjectPath)
+	if err != nil {
+		failf("Failed to get absolute project path: %s", err)
+	}
+
 	//
 	// Create the app with Xcode Command Line tools
 	{
 		fmt.Println()
 		log.Infof("Running build")
-
-		absProjectPath, err := filepath.Abs(cfg.ProjectPath)
-		if err != nil {
-			failf("Failed to get absolute project path: %s", err)
-		}
 
 		var isWorkspace bool
 		if xcworkspace.IsWorkspace(absProjectPath) {
@@ -249,6 +250,13 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 			}
 			failf("Build failed, error: %s", err)
 		}
+
+		// Cache swift PM
+		if xcodeMajorVersion >= 11 && cfg.CacheLevel == "swift_packages" {
+			if err := cache.CollectSwiftPackages(absProjectPath); err != nil {
+				log.Warnf("Failed to mark swift packages for caching, error: %s", err)
+			}
+		}
 	}
 
 	//
@@ -258,9 +266,9 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 		fmt.Println()
 		log.Infof("Copy artifacts from Derived Data to %s", absOutputDir)
 
-		proj, _, err := findBuiltProject(cfg.ProjectPath, cfg.Scheme, cfg.Configuration)
+		proj, _, err := findBuiltProject(absProjectPath, cfg.Scheme, cfg.Configuration)
 		if err != nil {
-			failf("Failed to open xcproj - (%s), error:", cfg.ProjectPath, err)
+			failf("Failed to open xcproj - (%s), error:", absProjectPath, err)
 		}
 
 		customOptions, err := shellquote.Split(cfg.XcodebuildOptions)
@@ -279,7 +287,7 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 			customOptions = append(customOptions, simulatorName)
 		}
 
-		schemeBuildDir, err := buildTargetDirForScheme(proj, cfg.ProjectPath, cfg.Scheme, cfg.Configuration, customOptions...)
+		schemeBuildDir, err := buildTargetDirForScheme(proj, absProjectPath, cfg.Scheme, cfg.Configuration, customOptions...)
 		if err != nil {
 			failf("Failed to get scheme (%s) build target dir, error: %s", err)
 		}
