@@ -58,7 +58,6 @@ type Config struct {
 }
 
 func main() {
-	//
 	// Config
 	var cfg Config
 	if err := stepconf.Parse(&cfg); err != nil {
@@ -69,6 +68,9 @@ func main() {
 	fmt.Println()
 
 	log.SetEnableDebugLog(cfg.VerboseLog)
+
+	// Determined configs
+	log.Infof("Step determined configs:")
 
 	// Detect Xcode major version
 	xcodebuildVersion, err := utility.GetXcodeVersion()
@@ -82,12 +84,8 @@ func main() {
 		failf("Invalid xcode major version (%d), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
 	}
 
-	//
-	// Determined configs
 	outputTool := cfg.OutputTool
 	{
-		log.Infof("Step determined configs:")
-
 		// Detect xcpretty version
 		if outputTool == "xcpretty" {
 			fmt.Println()
