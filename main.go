@@ -248,13 +248,6 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 			}
 			failf("Build failed, error: %s", err)
 		}
-
-		// Cache swift PM
-		if xcodeMajorVersion >= 11 && cfg.CacheLevel == "swift_packages" {
-			if err := cache.CollectSwiftPackages(absProjectPath); err != nil {
-				log.Warnf("Failed to mark swift packages for caching, error: %s", err)
-			}
-		}
 	}
 
 	//
@@ -315,6 +308,13 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 
 		fmt.Println()
 		log.Donef("You can find the exported artifacts in: %s", absOutputDir)
+	}
+
+	// Cache swift PM
+	if xcodeMajorVersion >= 11 && cfg.CacheLevel == "swift_packages" {
+		if err := cache.CollectSwiftPackages(absProjectPath); err != nil {
+			log.Warnf("Failed to mark swift packages for caching, error: %s", err)
+		}
 	}
 }
 
