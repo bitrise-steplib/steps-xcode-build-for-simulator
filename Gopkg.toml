@@ -12,16 +12,12 @@
   name = "github.com/bitrise-io/go-xcode"
 
 [[constraint]]
-  name = "github.com/bitrise-steplib/steps-xcode-archive"
-  branch = "master"
-
-[[constraint]]
   branch = "master"
   name = "github.com/bitrise-io/xcode-project"
 
 [[constraint]]
-  name = "github.com/bitrise-steplib/steps-xcode-build-for-simulator"
   branch = "master"
+  name = "github.com/bitrise-steplib/steps-xcode-archive"
 
 [[constraint]]
   branch = "master"
