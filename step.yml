@@ -40,10 +40,9 @@ inputs:
       summary: "The Scheme to use."
       description: "The Scheme to use."
       is_required: "true"
-  - simulator_device: iPhone 6s Plus
+  - simulator_device: iPhone 8 Plus
     opts:
-      title: Simulator
-      summary: "Simulator name"
+      title: "Device model"
       description: |-
         Set it as it is shown in Xcode's device selection dropdown UI.
 
@@ -51,11 +50,11 @@ inputs:
         actual available options depend on which versions
         are installed):
 
-        * iPhone 6
-        * iPhone 6 Plus
-        * iPad
-        * iPad Air
-        * Apple TV 1080p (don't forget to set the platform to `tvOS Simulator` to use this option!)
+        * iPhone 8 Plus
+        * iPhone Xs Max
+        * iPad Air (3rd generation)
+        * iPad Pro (12.9-inch) (3rd generation)
+        * Apple TV 4K (don't forget to set the platform to `tvOS Simulator` to use this option!)
       is_required: "true"
   - simulator_os_version: "latest"
     opts:
@@ -120,6 +119,17 @@ inputs:
       value_options:
         - "yes"
         - "no"
+  - cache_level: swift_packages
+    opts:
+      title: Enable caching of Swift Package Manager packages
+      description: |-
+        Available options:
+        - `none` : Disable caching
+        - `swift_packages` : Cache Swift PM packages added to the Xcode project
+      value_options:
+      - "none"
+      - "swift_packages"
+      is_required: true
   - xcodebuild_options: ""
     opts:
       category: Debug

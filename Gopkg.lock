@@ -3,18 +3,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e875a94349b121ca6fa86bd72f7593f7f0e6f0d07a7d664f31fc000d80eaeec3"
+  digest = "1:5e4f167418977858782db1d8820e8c2ccd368c8857e0806bcbd07d0bc09e1e38"
   name = "github.com/bitrise-io/go-steputils"
   packages = [
+    "cache",
     "stepconf",
     "tools",
   ]
   pruneopts = "UT"
-  revision = "cecc766da84859e37e780d9d1c416f0f3993e6b1"
+  revision = "f540824d77dfd382ce84fd0ee0a9da2fba1cce0a"
 
 [[projects]]
   branch = "master"
-  digest = "1:62f3cfac8637c0809f7c1a00181b5b3bca003afa34cc8ded03aeac118d480928"
+  digest = "1:e3f061ae1fab72e7e741d97e4ea7574644f9cd71a33390fa4aacb052edfaa646"
   name = "github.com/bitrise-io/go-utils"
   packages = [
     "colorstring",
@@ -28,14 +29,15 @@
     "pkcs12",
     "pkcs12/internal/rc2",
     "pointers",
+    "sliceutil",
     "stringutil",
   ]
   pruneopts = "UT"
-  revision = "2a09aab8380d7842750328aebd5671bcccea89c8"
+  revision = "3aa93c2266790b9bc3c7002b21eb95c28782cb10"
 
 [[projects]]
   branch = "master"
-  digest = "1:86e39ee8596d07917fbb7c2bc7e30121984dc987b317daeb38b8685404296f4f"
+  digest = "1:286ebed3552c6a0d7194fef7bf1cffe7728df79729fd288e5059b02ef4b9fd5d"
   name = "github.com/bitrise-io/go-xcode"
   packages = [
     "certificateutil",
@@ -46,16 +48,19 @@
     "simulator",
     "utility",
     "xcodebuild",
+    "xcodecache",
     "xcpretty",
   ]
   pruneopts = "UT"
-  revision = "04a02fcd3c06c698d47ce4e27dbe105d6ea8eadc"
+  revision = "19cbfe6430acc193d779847a13be0b8585d866c1"
 
 [[projects]]
   branch = "master"
-  digest = "1:791ce0f7d09a4c628614a5e3d097589406e8870f03bfa0db199b2d80cd2fb670"
+  digest = "1:96dce0e947311f3985d20c3f368e71a4d281c916d3e3b85566f867f4a22980a3"
   name = "github.com/bitrise-io/xcode-project"
   packages = [
+    ".",
+    "pretty",
     "serialized",
     "xcodebuild",
     "xcodeproj",
@@ -63,15 +68,15 @@
     "xcworkspace",
   ]
   pruneopts = "UT"
-  revision = "b724e9a2dda0585b6ceb6dbf9eb84ddbbf135335"
+  revision = "a4e01d69cacc7dd9acbe8fb987dba69c9ce01b1c"
 
 [[projects]]
   branch = "master"
-  digest = "1:a16c993e2cafb19eb874281603bd0398df126c3ef2ed4d2acce08f16876061dc"
+  digest = "1:eab1c9dd3b31f9ac6a61501a668c8e529d5ea224e6533a2f6bc9b12f1bdaa002"
   name = "github.com/bitrise-steplib/steps-xcode-archive"
   packages = ["utils"]
   pruneopts = "UT"
-  revision = "23665685d131c54fa4bc16294d529a900f45bca6"
+  revision = "d25b478ae7b83f6b6d2353014381dd17e801147c"
 
 [[projects]]
   branch = "master"
@@ -82,12 +87,12 @@
   revision = "d7302db945fa6ea264fb79d8e13e931ea514a602"
 
 [[projects]]
-  digest = "1:950caca7dfcf796419232ba996c9c3539d09f26af27ba848c4508e604c13efbb"
+  digest = "1:88e0b0baeb9072f0a4afbcf12dda615fc8be001d1802357538591155998da21b"
   name = "github.com/hashicorp/go-version"
   packages = ["."]
   pruneopts = "UT"
-  revision = "d40cf49b3a77bba84a7afdbd7f1dc295d114efb1"
-  version = "v1.1.0"
+  revision = "ac23dc3fea5d1a983c43f6a0f6e2c13f0195d8bd"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
@@ -106,15 +111,15 @@
   version = "v0.8.1"
 
 [[projects]]
-  branch = "master"
   digest = "1:6baa565fe16f8657cf93469b2b8a6c61a277827734400d27e44d589547297279"
   name = "github.com/ryanuber/go-glob"
   packages = ["."]
   pruneopts = "UT"
   revision = "51a8f68e6c24dc43f1e371749c89a267de4ebc53"
+  version = "v1.0.0"
 
 [[projects]]
-  digest = "1:8029e9743749d4be5bc9f7d42ea1659471767860f0cdc34d37c3111bd308a295"
+  digest = "1:1093f2eb4b344996604f7d8b29a16c5b22ab9e1b25652140d3fede39f640d5cd"
   name = "golang.org/x/text"
   packages = [
     "internal/gen",
@@ -125,8 +130,8 @@
     "unicode/norm",
   ]
   pruneopts = "UT"
-  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
-  version = "v0.3.0"
+  revision = "342b2e1fbaa52c93f31447ad2c6abc048c63e475"
+  version = "v0.3.2"
 
 [[projects]]
   branch = "master"
@@ -151,6 +156,7 @@
     "github.com/bitrise-io/go-xcode/simulator",
     "github.com/bitrise-io/go-xcode/utility",
     "github.com/bitrise-io/go-xcode/xcodebuild",
+    "github.com/bitrise-io/go-xcode/xcodecache",
     "github.com/bitrise-io/go-xcode/xcpretty",
     "github.com/bitrise-io/xcode-project/serialized",
     "github.com/bitrise-io/xcode-project/xcodeproj",

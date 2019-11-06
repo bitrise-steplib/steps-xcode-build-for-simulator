@@ -23,11 +23,11 @@ workflows:
     - test_workspace
     - test_multi_target_workspace_custom_derived_data_path
     - test_multi_target_workspace
-    - test_react_native
-    - test_react_native_workspace
-    - test_react_native_custom_target_build_dir
+    # Disabled react-native due to detox installation failure
+    # - test_react_native
+    # - test_react_native_workspace
+    # - test_react_native_custom_target_build_dir
 
-    
 
   test_objc:
     envs:
@@ -41,32 +41,6 @@ workflows:
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
-    after_run:
-    - _common
-
-  test_xcode_8:
-    steps:
-    - change-workdir:
-        title: Switch working dir to original dir
-        run_if: true
-        inputs:
-        - path: "$ORIG_BITRISE_SOURCE_DIR"
-        - is_create_path: true
-    - go-list:
-    - go-test:
-    envs:
-    - XCODEBUILD_OPTIONS:
-    - SAMPLE_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
-    - COMMIT: "52ca16a9cead25be8c95c54e7fd53ce8fd945330"
-    - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
-    - BITRISE_SCHEME: ios-xcode-8.0
-    - OUTPUT_TOOL: xcpretty
-    - SIMULATOR_OS_VERSION: latest
-    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
-    - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/ios-xcode-8.0.app
-    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/ios-xcode-8.0.app
-    before_run:
-    - test_objc
     after_run:
     - _common
 
@@ -172,6 +146,21 @@ workflows:
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
+    after_run:
+    - _common
+
+  test_swiftpm:
+    envs:
+    - XCODEBUILD_OPTIONS:
+    - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-swiftpm.git
+    - BRANCH: master
+    - BITRISE_PROJECT_PATH: sample-swiftpm.xcodeproj
+    - BITRISE_SCHEME: "sample swiftpm"
+    - OUTPUT_TOOL: xcodebuild
+    - SIMULATOR_OS_VERSION: "latest"
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/sample-swiftpm.app
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/sample-swiftpm.app
     after_run:
     - _common
 
