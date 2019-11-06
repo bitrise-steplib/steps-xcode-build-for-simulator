@@ -355,6 +355,7 @@ func findBuiltProject(pth, schemeName, configurationName string) (xcodeproj.Xcod
 
 		var containerProject string
 		scheme, containerProject, err = workspace.Scheme(schemeName)
+		
 		if err != nil {
 			return xcodeproj.XcodeProj{}, "", fmt.Errorf("no scheme found with name: %s in workspace: %s, error: %s", schemeName, pth, err)
 		}
@@ -427,11 +428,49 @@ func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, conf
 	}
 
 	schemeBuildDir, err := buildSettings.String("TARGET_BUILD_DIR")
+
 	if err != nil {
 		return "", fmt.Errorf("failed to parse build settings, error: %s", err)
 	}
 
 	return schemeBuildDir, nil
+}
+
+func wrapperNameForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, configuration string, customOptions ...string) (string, error) {
+	// Fetch project's main target from .xcodeproject
+	var buildSettings serialized.Object
+	if xcodeproj.IsXcodeProj(projectPath) {
+		mainTarget, err := mainTargetOfScheme(proj, scheme)
+		if err != nil {
+			return "", fmt.Errorf("failed to fetch project's targets, error: %s", err)
+		}
+
+		buildSettings, err = proj.TargetBuildSettings(mainTarget.Name, configuration, customOptions...)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse project (%s) build settings, error: %s", projectPath, err)
+		}
+	} else if xcworkspace.IsWorkspace(projectPath) {
+		workspace, err := xcworkspace.Open(projectPath)
+		if err != nil {
+			return "", fmt.Errorf("Failed to open xcworkspace (%s), error: %s", projectPath, err)
+		}
+
+		buildSettings, err = workspace.SchemeBuildSettings(scheme, configuration, customOptions...)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse workspace (%s) build settings, error: %s", projectPath, err)
+		}
+	} else {
+		return "", fmt.Errorf("project file extension should be .xcodeproj or .xcworkspace, but got: %s", filepath.Ext(projectPath))
+
+	}
+	
+	wrapperName, err := buildSettings.String("WRAPPER_NAME")
+
+	if err != nil {
+		return "", fmt.Errorf("failed to parse build settings, error: %s", err)
+	}
+
+	return wrapperName, nil
 }
 
 // exportArtifacts exports the main target and it's .app dependencies.
@@ -546,7 +585,20 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 
 				} else if !exists {
 					log.Debugf("path not exists: %s", source)
-					continue
+					// Also check to see if a path exists with the target name
+					wrapperName, err := wrapperNameForScheme(proj, proj.Path, scheme, configuration, customOptions...)
+					if err != nil {
+						failf("Failed to get scheme (%s) build target dir, error: %s", err)
+					}
+					source = filepath.Join(sourceDir, wrapperName)
+
+					if exists, err := pathutil.IsPathExists(source); err != nil {
+						log.Debugf("failed to check if the path exists: (%s), error: ", source, err)
+						continue
+					} else if !exists {
+						log.Debugf("2nd path does not exist: %s", source)
+						continue
+					}
 				}
 
 				// Copy the build artifact
