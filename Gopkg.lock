@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5e4f167418977858782db1d8820e8c2ccd368c8857e0806bcbd07d0bc09e1e38"
+  digest = "1:3a44acdcf12ff7ebcfff05da5044a66d20058a1b5a3e8d20595a1b9683e3b580"
   name = "github.com/bitrise-io/go-steputils"
   packages = [
     "cache",
@@ -11,11 +11,11 @@
     "tools",
   ]
   pruneopts = "UT"
-  revision = "f540824d77dfd382ce84fd0ee0a9da2fba1cce0a"
+  revision = "3c98d95a94d51624a26e99419d0fc03d2aab0055"
 
 [[projects]]
   branch = "master"
-  digest = "1:e3f061ae1fab72e7e741d97e4ea7574644f9cd71a33390fa4aacb052edfaa646"
+  digest = "1:a3740ba88004bb9c411180619268ee8efb768520df2d6c6bf7ffeb66f82ddf1a"
   name = "github.com/bitrise-io/go-utils"
   packages = [
     "colorstring",
@@ -33,11 +33,11 @@
     "stringutil",
   ]
   pruneopts = "UT"
-  revision = "3aa93c2266790b9bc3c7002b21eb95c28782cb10"
+  revision = "5067a2a682f21030f379f88e853b9e0734a24516"
 
 [[projects]]
   branch = "master"
-  digest = "1:286ebed3552c6a0d7194fef7bf1cffe7728df79729fd288e5059b02ef4b9fd5d"
+  digest = "1:cfea6a1c89a891698eff4e542ca2920789f103529db09f8eccafbc2b1c93b7d8"
   name = "github.com/bitrise-io/go-xcode"
   packages = [
     "certificateutil",
@@ -52,11 +52,11 @@
     "xcpretty",
   ]
   pruneopts = "UT"
-  revision = "19cbfe6430acc193d779847a13be0b8585d866c1"
+  revision = "95bf1e5fb205f81972e2450d227fa80748a5b322"
 
 [[projects]]
   branch = "master"
-  digest = "1:96dce0e947311f3985d20c3f368e71a4d281c916d3e3b85566f867f4a22980a3"
+  digest = "1:85c502298a8078ffdfee516cfb59bb5272c3adca032d1d26001da41042275851"
   name = "github.com/bitrise-io/xcode-project"
   packages = [
     ".",
@@ -68,7 +68,7 @@
     "xcworkspace",
   ]
   pruneopts = "UT"
-  revision = "a4e01d69cacc7dd9acbe8fb987dba69c9ce01b1c"
+  revision = "389cf29e41c71dc02c83959c6fac72e8d476766a"
 
 [[projects]]
   branch = "master"
@@ -76,7 +76,7 @@
   name = "github.com/bitrise-steplib/steps-xcode-archive"
   packages = ["utils"]
   pruneopts = "UT"
-  revision = "d25b478ae7b83f6b6d2353014381dd17e801147c"
+  revision = "8b2aa80d6c8dea5055a9ffe213a6733ca1c99b95"
 
 [[projects]]
   branch = "master"
