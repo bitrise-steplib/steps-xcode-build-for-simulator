@@ -242,8 +242,8 @@ func main() {
 					log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
 				} else {
 					log.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log is also available in the raw-xcodebuild-output.log
-The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable
-(value: %s)`, rawXcodebuildOutputLogPath)
+The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in the $%s environment variable
+(value: %s)`, bitriseXcodeRawResultTextEnvKey, rawXcodebuildOutputLogPath)
 				}
 			}
 			failf("Build failed, error: %s", err)

@@ -198,7 +198,7 @@ outputs:
 
 
         The paths are separated with `|` character, eg: `/deploy109787178/sample-apps-ios-workspace-swift.app|/deploy109787178/bitfall.sample-apps-ios-workspace-swift-watch.app`
-  - BITRISE_XCODE_BUILD_RAW_RESULT_TEXT_PATH:
+  - BITRISE_XCODE_RAW_RESULT_TEXT_PATH:
     opts:
       title: The full, raw build output file path
       description: |-
