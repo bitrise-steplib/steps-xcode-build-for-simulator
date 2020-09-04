@@ -42,7 +42,7 @@ const (
 type Config struct {
 	ProjectPath               string `env:"project_path,required"`
 	Scheme                    string `env:"scheme,required"`
-	Configuration             string `env:"configuration,required"`
+	Configuration             string `env:"configuration"`
 	ArtifactName              string `env:"artifact_name"`
 	XcodebuildOptions         string `env:"xcodebuild_options"`
 	Workdir                   string `env:"workdir"`
@@ -184,6 +184,25 @@ func main() {
 	}
 
 	//
+	// Read the Scheme
+	var s *xcscheme.Scheme
+	var sc string
+	var conf string
+	{
+		s, sc, err = readScheme(absProjectPath, cfg.Scheme)
+
+		if err != nil {
+			failf("Failed to read schema: %s", err)
+		}
+
+		if cfg.Configuration != "" {
+			conf = cfg.Configuration
+		} else {
+			conf = s.ArchiveAction.BuildConfiguration
+		}
+	}
+
+	//
 	// Create the app with Xcode Command Line tools
 	{
 		fmt.Println()
@@ -199,7 +218,7 @@ func main() {
 		// Build for simulator command
 		xcodeBuildCmd := xcodebuild.NewCommandBuilder(absProjectPath, isWorkspace, xcodebuild.BuildAction)
 		xcodeBuildCmd.SetScheme(cfg.Scheme)
-		xcodeBuildCmd.SetConfiguration(cfg.Configuration)
+		xcodeBuildCmd.SetConfiguration(conf)
 
 		// Disable the code signing for simulator build
 		xcodeBuildCmd.SetDisableCodesign(true)
@@ -257,7 +276,7 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 		fmt.Println()
 		log.Infof("Copy artifacts from Derived Data to %s", absOutputDir)
 
-		proj, _, err := findBuiltProject(absProjectPath, cfg.Scheme, cfg.Configuration)
+		proj, err := findBuiltProject(s, sc, conf)
 		if err != nil {
 			failf("Failed to open xcproj - (%s), error:", absProjectPath, err)
 		}
@@ -278,7 +297,7 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 			customOptions = append(customOptions, simulatorName)
 		}
 
-		schemeBuildDir, err := buildTargetDirForScheme(proj, absProjectPath, cfg.Scheme, cfg.Configuration, customOptions...)
+		schemeBuildDir, err := buildTargetDirForScheme(proj, absProjectPath, cfg.Scheme, conf, customOptions...)
 		if err != nil {
 			failf("Failed to get scheme (%s) build target dir, error: %s", err)
 		}
@@ -286,7 +305,7 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 		log.Debugf("Scheme build dir: %s", schemeBuildDir)
 
 		// Export the artifact from the build dir to the output_dir
-		if exportedArtifacts, err = exportArtifacts(proj, cfg.Scheme, schemeBuildDir, cfg.Configuration, cfg.SimulatorPlatform, absOutputDir); err != nil {
+		if exportedArtifacts, err = exportArtifacts(proj, cfg.Scheme, schemeBuildDir, conf, cfg.SimulatorPlatform, absOutputDir); err != nil {
 			failf("Failed to export the artifacts, error: %s", err)
 		}
 	}
@@ -331,45 +350,48 @@ func exportOutput(artifacts []string) (string, string, error) {
 	return artifacts[0], pathMap, nil
 }
 
-// findBuiltProject returns the Xcode project which will be built for the provided scheme
-func findBuiltProject(pth, schemeName, configurationName string) (xcodeproj.XcodeProj, string, error) {
+func readScheme(pth, schemeName string) (*xcscheme.Scheme, string, error) {
 	var scheme *xcscheme.Scheme
 	var schemeContainerDir string
 
 	if xcodeproj.IsXcodeProj(pth) {
 		project, err := xcodeproj.Open(pth)
 		if err != nil {
-			return xcodeproj.XcodeProj{}, "", err
+			return nil, "", err
 		}
 
 		scheme, _, err = project.Scheme(schemeName)
 		if err != nil {
-			return xcodeproj.XcodeProj{}, "", fmt.Errorf("failed to get scheme (%s) from project (%s), error: %s", schemeName, pth, err)
+			return nil, "", fmt.Errorf("failed to get scheme (%s) from project (%s), error: %s", schemeName, pth, err)
 		}
 		schemeContainerDir = filepath.Dir(pth)
 	} else if xcworkspace.IsWorkspace(pth) {
 		workspace, err := xcworkspace.Open(pth)
 		if err != nil {
-			return xcodeproj.XcodeProj{}, "", err
+			return nil, "", err
 		}
 
 		var containerProject string
 		scheme, containerProject, err = workspace.Scheme(schemeName)
-		
+
 		if err != nil {
-			return xcodeproj.XcodeProj{}, "", fmt.Errorf("no scheme found with name: %s in workspace: %s, error: %s", schemeName, pth, err)
+			return nil, "", fmt.Errorf("no scheme found with name: %s in workspace: %s, error: %s", schemeName, pth, err)
 		}
 		schemeContainerDir = filepath.Dir(containerProject)
 	} else {
-		return xcodeproj.XcodeProj{}, "", fmt.Errorf("unknown project extension: %s", filepath.Ext(pth))
+		return nil, "", fmt.Errorf("unknown project extension: %s", filepath.Ext(pth))
 	}
+	return scheme, schemeContainerDir, nil
+}
 
+// findBuiltProject returns the Xcode project which will be built for the provided scheme
+func findBuiltProject(scheme *xcscheme.Scheme, schemeContainerDir, configurationName string) (xcodeproj.XcodeProj, error) {
 	if configurationName == "" {
 		configurationName = scheme.ArchiveAction.BuildConfiguration
 	}
 
 	if configurationName == "" {
-		return xcodeproj.XcodeProj{}, "", fmt.Errorf("no configuration provided nor default defined for the scheme's (%s) archive action", schemeName)
+		return xcodeproj.XcodeProj{}, fmt.Errorf("no configuration provided nor default defined for the scheme's (%s) archive action", scheme.Name)
 	}
 
 	var archiveEntry xcscheme.BuildActionEntry
@@ -382,20 +404,20 @@ func findBuiltProject(pth, schemeName, configurationName string) (xcodeproj.Xcod
 	}
 
 	if archiveEntry.BuildableReference.BlueprintIdentifier == "" {
-		return xcodeproj.XcodeProj{}, "", fmt.Errorf("archivable entry not found")
+		return xcodeproj.XcodeProj{}, fmt.Errorf("archivable entry not found")
 	}
 
 	projectPth, err := archiveEntry.BuildableReference.ReferencedContainerAbsPath(schemeContainerDir)
 	if err != nil {
-		return xcodeproj.XcodeProj{}, "", err
+		return xcodeproj.XcodeProj{}, err
 	}
 
 	project, err := xcodeproj.Open(projectPth)
 	if err != nil {
-		return xcodeproj.XcodeProj{}, "", err
+		return xcodeproj.XcodeProj{}, err
 	}
 
-	return project, scheme.Name, nil
+	return project, nil
 }
 
 // buildTargetDirForScheme returns the TARGET_BUILD_DIR for the provided scheme
@@ -463,7 +485,7 @@ func wrapperNameForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, configu
 		return "", fmt.Errorf("project file extension should be .xcodeproj or .xcworkspace, but got: %s", filepath.Ext(projectPath))
 
 	}
-	
+
 	wrapperName, err := buildSettings.String("WRAPPER_NAME")
 
 	if err != nil {

@@ -86,7 +86,7 @@ inputs:
       - iOS
       - tvOS
       is_required: "true"
-  - configuration: Debug
+  - configuration:
     opts:
       title: "Configuration name"
       description: |-
@@ -98,7 +98,6 @@ inputs:
         in your Xcode Project**. If it does not, if you have a typo
         in the value of this input Xcode will simply use the Configuration
         specified by the Scheme and will silently ignore this parameter!
-      is_required: "true"
   - disable_index_while_building: "yes"
     opts:
       title: Disable indexing during the build
