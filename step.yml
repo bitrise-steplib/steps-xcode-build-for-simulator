@@ -90,7 +90,7 @@ inputs:
     opts:
       title: "Configuration name"
       description: |-
-        (optional) The configuration to use. By default your Scheme
+        (optional) The configuration to use. By default your Scheme's archive action
         defines which configuration (Debug, Release, ...) should be used,
         but you can overwrite it with this option.
 
