@@ -185,11 +185,11 @@ func main() {
 
 	//
 	// Read the Scheme
-	var s *xcscheme.Scheme
-	var sc string
+	var scheme *xcscheme.Scheme
+	var schemeContainerDir string
 	var conf string
 	{
-		s, sc, err = readScheme(absProjectPath, cfg.Scheme)
+		scheme, schemeContainerDir, err = readScheme(absProjectPath, cfg.Scheme)
 
 		if err != nil {
 			failf("Failed to read schema: %s", err)
@@ -198,7 +198,7 @@ func main() {
 		if cfg.Configuration != "" {
 			conf = cfg.Configuration
 		} else {
-			conf = s.ArchiveAction.BuildConfiguration
+			conf = scheme.ArchiveAction.BuildConfiguration
 		}
 	}
 
@@ -276,7 +276,7 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 		fmt.Println()
 		log.Infof("Copy artifacts from Derived Data to %s", absOutputDir)
 
-		proj, err := findBuiltProject(s, sc, conf)
+		proj, err := findBuiltProject(scheme, schemeContainerDir, conf)
 		if err != nil {
 			failf("Failed to open xcproj - (%s), error:", absProjectPath, err)
 		}
