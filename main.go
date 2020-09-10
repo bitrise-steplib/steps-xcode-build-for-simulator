@@ -12,6 +12,7 @@ import (
 	"github.com/bitrise-io/go-utils/errorutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
+	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/go-xcode/simulator"
 	"github.com/bitrise-io/go-xcode/utility"
@@ -555,10 +556,16 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 
 		//
 		// Find the TARGET_BUILD_DIR for the target
+		options := []string{"-sdk", simulatorName}
 		var targetDir string
 		{
-			customOptions = append(customOptions, []string{"-sdk", simulatorName}...)
-			buildSettings, err := proj.TargetBuildSettings(target.Name, configuration, customOptions...)
+			if sliceutil.IsStringInSlice("-sdk", customOptions) {
+				options = customOptions
+			} else {
+				options = append(options, customOptions...)
+			}
+
+			buildSettings, err := proj.TargetBuildSettings(target.Name, configuration, options...)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get project build settings, error: %s", err)
 			}
