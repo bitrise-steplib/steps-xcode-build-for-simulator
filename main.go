@@ -557,7 +557,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 		// Find the TARGET_BUILD_DIR for the target
 		var targetDir string
 		{
-			customOptions = []string{"-sdk", simulatorName}
+			customOptions = append(customOptions, []string{"-sdk", simulatorName}...)
 			buildSettings, err := proj.TargetBuildSettings(target.Name, configuration, customOptions...)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get project build settings, error: %s", err)
@@ -581,7 +581,6 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 			} else {
 				targetDir = splitTargetDir[1]
 			}
-
 		}
 
 		//
