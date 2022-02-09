@@ -518,7 +518,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 		return nil, fmt.Errorf("failed to fetch project's targets, error: %s", err)
 	}
 
-	targets := append([]xcodeproj.Target{mainTarget}, mainTarget.DependentTargets()...)
+	targets := append([]xcodeproj.Target{mainTarget}, mainTarget.DependentExecutableProductTargets(false)...)
 
 	for _, target := range targets {
 		log.Donef(target.Name + "...")
