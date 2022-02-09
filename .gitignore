@@ -1,2 +1,4 @@
 .bitrise*
 _tmp
+.DS_Store
+steps-xcode-build-for-simulator

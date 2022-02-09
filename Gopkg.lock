@@ -79,6 +79,14 @@
   revision = "8b2aa80d6c8dea5055a9ffe213a6733ca1c99b95"
 
 [[projects]]
+  digest = "1:0321fca4a7ff94ce19daac87e7511c62c2da36ab3d1232271b15fdce23140156"
+  name = "github.com/bitrise-steplib/steps-xcode-build-for-simulator"
+  packages = ["util"]
+  pruneopts = "UT"
+  revision = "92907f5096554347d916c092d51f3ba74a6d2c91"
+  version = "0.11.4"
+
+[[projects]]
   branch = "master"
   digest = "1:0bd05495dbd0567480e48eac9e6602d87875a8747b13c3c0fcb7c83c7c921776"
   name = "github.com/fullsailor/pkcs7"
@@ -152,6 +160,7 @@
     "github.com/bitrise-io/go-utils/errorutil",
     "github.com/bitrise-io/go-utils/log",
     "github.com/bitrise-io/go-utils/pathutil",
+    "github.com/bitrise-io/go-utils/sliceutil",
     "github.com/bitrise-io/go-utils/stringutil",
     "github.com/bitrise-io/go-xcode/simulator",
     "github.com/bitrise-io/go-xcode/utility",
@@ -163,6 +172,7 @@
     "github.com/bitrise-io/xcode-project/xcscheme",
     "github.com/bitrise-io/xcode-project/xcworkspace",
     "github.com/bitrise-steplib/steps-xcode-archive/utils",
+    "github.com/bitrise-steplib/steps-xcode-build-for-simulator/util",
     "github.com/kballard/go-shellquote",
   ]
   solver-name = "gps-cdcl"

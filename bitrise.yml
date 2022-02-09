@@ -81,7 +81,7 @@ workflows:
     - BRANCH: watch
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-    - SIMULATOR_OS_VERSION: "11.4"
+    - SIMULATOR_OS_VERSION: "latest"
     - OUTPUT_TOOL: xcodebuild
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
@@ -96,7 +96,7 @@ workflows:
     - BRANCH: watch
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-    - SIMULATOR_OS_VERSION: "11.4"
+    - SIMULATOR_OS_VERSION: "latest"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
@@ -111,7 +111,7 @@ workflows:
     - BRANCH: master
     - BITRISE_PROJECT_PATH: ios/SampleProjectReactNative.xcodeproj
     - BITRISE_SCHEME: SampleProjectReactNative
-    - SIMULATOR_OS_VERSION: "11.4"
+    - SIMULATOR_OS_VERSION: "latest"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
@@ -126,7 +126,7 @@ workflows:
     - BRANCH: master
     - BITRISE_PROJECT_PATH: ios/SampleProjectReactNative.xcworkspace
     - BITRISE_SCHEME: SampleProjectReactNative
-    - SIMULATOR_OS_VERSION: "11.4"
+    - SIMULATOR_OS_VERSION: "latest"
     - OUTPUT_TOOL: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
