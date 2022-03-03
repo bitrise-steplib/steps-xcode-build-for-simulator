@@ -1,8 +1,49 @@
 title: Xcode build for simulator
 summary: Runs Xcode Build command for simulators.
 description: |
-  Runs Xcode Build command for simulators
-  for iOS, tvOS or watchOS.
+  This Step runs the `xcodebuild` command to build and deploy your iOS, tvOS, or watchOS for a simulator. You can use this to show off your app in a browser, for example. 
+  The Step generates the following outputs:
+  * `BITRISE_APP_DIR_PATH`: the path to the generated `.app` file.
+  * `BITRISE_APP_DIR_PATH_LIST`: the path to the generated `.app` file and the paths to every dependent target app. The paths are separated with the `|` character.
+  * `BITRISE_XCODE_BUILD_RAW_RESULT_TEXT_PATH`: the path to the log file of the raw build results.
+  
+  The Step also creates an `.xctestrun` file which you can use to run tests.
+
+  ### Configuring the Step
+
+  Before you start:
+
+  Make sure to include this Step after the Steps that install the necessary dependencies such as **Run Cocoapods Install** in your Workflow. 
+
+  To configure the Step:
+
+  1. **Project (or Workspace) path**: The path to your project's `.xcodeproj` or `.xworkspace` file. By default, this is stored in an Environment Variable when you add your app to Bitrise.
+  1. **Scheme name**: The Xcode Scheme of your project. This is stored in an Environment Variable by default when you add your app to Bitrise.
+  1. **Device model**: The type of device you want to run the app on. Set it exactly as it appears in the device selection menu in Xcode.
+  1. **OS version**: The version of device operating system you want to run the app on. Set it exactly as it appears in the device selection menu in Xcode. The default value is latest.
+  1. **Platform**: The platform you want to run the app on. The default value is `iOS`. Make sure that the values of the **Device model** input and the **Platform** input are compatible: for example, if you set **Device model** to `Apple TV 1080p`, set **Platform** to `tvOS`.
+  1. **Configuration name**: By default, your Scheme's archive action defines which configuration is used, but you can overwrite it with this option. Ensure that the Configuration you specify exists in your Xcode Project; otherwise, this input will be ignored. 
+  1. **Disable indexing during the build**: By setting this input to `no`, you can disable indexing during the build, which can speed up your build time.
+  1. **Enable caching of Swift Package Manager packages**: To disable caching swift package, set this input to `none`.
+
+  Under **Debug**:
+  
+  1. **Additional options for xcodebuild call**: You can add additional options to the end of the xcodebuild call. For example, `-xcconfig PATH -verbose`.
+  1. **Working directory**: If you would like to change the working directory of the Step, you can do so with this input.
+  1. **Output directory path**: You can change the output directory, which will contain the generated `.app` artifacts with this input.
+  1. **Do a clean Xcode build before the build?**: Set this input to `yes` to do a clean Xcode build before the build. 
+  1. **Output tool**: You can set this input to `xcpretty` to prettify your output. If you set it to `xcodebuild`, the raw xcodebuild output will be printed. 
+  1. **Enable verbose logging?**: Set this input to `yes` if you want to enable verbose logs.
+
+  ### Useful links
+
+  * [Deploying an iOS app for simulators](https://devcenter.bitrise.io/en/deploying/ios-deployment/deploying-an-ios-app-for-simulators.html)
+
+  ### Related Steps
+
+  * [Xcode build for testing for iOS]https://www.bitrise.io/integrations/steps/xcode-build-for-test
+  * [Appetize.io deploy]https://www.bitrise.io/integrations/steps/appetize-deploy 
+
 website: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator
 source_code_url: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator
 support_url: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator/issues
@@ -44,7 +85,7 @@ inputs:
     opts:
       title: "Device model"
       description: |-
-        Set it as it is shown in Xcode's device selection dropdown UI.
+        Set it exactly as it appears in the device selection menu in Xcode's device selection dropdown UI.
 
         A couple of examples (the
         actual available options depend on which versions
@@ -60,7 +101,7 @@ inputs:
     opts:
       title: OS version
       description: |-
-        Set it as it is shown in
+        Set it exactly as it appears in
         Xcode's device selection dropdown UI.
 
         A couple of format examples (the
@@ -74,7 +115,7 @@ inputs:
     opts:
       title: Platform
       description: |-
-        Set it as it is shown in Xcode's device selection dropdown UI.
+        Set it exactly as it appears in Xcode's device selection dropdown UI.
 
         A couple of examples (the
         actual available options depend on which versions
@@ -90,7 +131,7 @@ inputs:
     opts:
       title: "Configuration name"
       description: |-
-        (optional) The configuration to use. By default your Scheme's archive action
+        (Optional) The configuration to use. By default your Scheme's archive action
         defines which configuration (Debug, Release, ...) should be used,
         but you can overwrite it with this option.
 
@@ -144,7 +185,7 @@ inputs:
       title: Working directory
       summary: ""
       description: |-
-        Working directory of the step.
+        Working directory of the Step.
         You can leave it empty to don't change it.
   - output_dir: $BITRISE_DEPLOY_DIR
     opts:
