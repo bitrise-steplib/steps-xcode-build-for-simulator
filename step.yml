@@ -39,8 +39,8 @@ description: |
 
   ### Related Steps
 
-  * [Xcode build for testing for iOS]https://www.bitrise.io/integrations/steps/xcode-build-for-test
-  * [Appetize.io deploy]https://www.bitrise.io/integrations/steps/appetize-deploy 
+  * [Xcode build for testing for iOS](https://www.bitrise.io/integrations/steps/xcode-build-for-test)
+  * [Appetize.io deploy](https://www.bitrise.io/integrations/steps/appetize-deploy)
 
 website: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator
 source_code_url: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator
