@@ -54,6 +54,7 @@ type Config struct {
 	SimulatorOsVersion        string `env:"simulator_os_version,required"`
 	SimulatorPlatform         string `env:"simulator_platform,opt[iOS,tvOS]"`
 	DisableIndexWhileBuilding bool   `env:"disable_index_while_building,opt[yes,no]"`
+	CodeSigningAllowed        bool   `env:"code_signing_allowed,opt[yes,no]"`
 	VerboseLog                bool   `env:"verbose_log,required"`
 	CacheLevel                string `env:"cache_level,opt[none,swift_packages]"`
 }
@@ -76,7 +77,7 @@ func main() {
 	// Detect Xcode major version
 	xcodebuildVersion, err := utility.GetXcodeVersion()
 	if err != nil {
-		failf("Failed to determin xcode version, error: %s", err)
+		failf("Failed to determine xcode version, error: %s", err)
 	}
 	log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.Version, xcodebuildVersion.BuildVersion)
 
@@ -222,7 +223,7 @@ func main() {
 		xcodeBuildCmd.SetConfiguration(conf)
 
 		// Disable the code signing for simulator build
-		xcodeBuildCmd.SetDisableCodesign(true)
+		xcodeBuildCmd.SetDisableCodesign(!cfg.CodeSigningAllowed)
 
 		// Set simulator destination and disable code signing for the build
 		xcodeBuildCmd.SetDestination("id=" + simulatorID)
@@ -241,7 +242,7 @@ func main() {
 			xcodeBuildCmd.SetCustomOptions(options)
 		}
 
-		// Disabe indexing while building
+		// Disable indexing while building
 		xcodeBuildCmd.SetDisableIndexWhileBuilding(cfg.DisableIndexWhileBuilding)
 
 		var swiftPackagesPath string

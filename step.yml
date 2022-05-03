@@ -157,6 +157,13 @@ inputs:
       value_options:
         - "yes"
         - "no"
+  - code_signing_allowed: "no"
+    opts:
+      title: Code Signing Allowed
+      description: Whether codesigning is allowed for this build.
+      value_options:
+        - "yes"
+        - "no"
   - cache_level: swift_packages
     opts:
       title: Enable caching of Swift Package Manager packages
