@@ -160,7 +160,9 @@ inputs:
   - code_signing_allowed: "no"
     opts:
       title: Code Signing Allowed
-      description: Whether codesigning is allowed for this build.
+      description: |-
+        When building an app for the simulator, code signing is not required and is set to "no" by default.
+        Only on rare occasions do you need to set the flag to "yes", usually when working with certain test cases or third-party dependencies.
       value_options:
         - "yes"
         - "no"
