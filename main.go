@@ -241,8 +241,10 @@ func main() {
 			xcodeBuildCmd.SetCustomOptions(options)
 		}
 
-		// Disabe indexing while building
-		xcodeBuildCmd.SetDisableIndexWhileBuilding(cfg.DisableIndexWhileBuilding)
+		// Disable indexing while building
+		if cfg.DisableIndexWhileBuilding {
+			xcodeBuildCmd.SetCustomBuildAction("COMPILER_INDEX_STORE_ENABLE=NO")
+		}
 
 		var swiftPackagesPath string
 		if xcodeMajorVersion >= 11 {
