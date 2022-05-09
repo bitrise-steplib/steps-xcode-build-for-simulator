@@ -228,10 +228,19 @@ func main() {
 		// Set simulator destination and disable code signing for the build
 		xcodeBuildCmd.SetDestination("id=" + simulatorID)
 
+		var customBuildActions []string
+
 		// Clean build
 		if cfg.IsCleanBuild {
-			xcodeBuildCmd.SetCustomBuildAction("clean")
+			customBuildActions = append(customBuildActions, "clean")
 		}
+
+		// Disable indexing while building
+		if cfg.DisableIndexWhileBuilding {
+			customBuildActions = append(customBuildActions, "COMPILER_INDEX_STORE_ENABLE=NO")
+		}
+
+		xcodeBuildCmd.SetCustomBuildAction(customBuildActions...)
 
 		// XcodeBuild Options
 		if cfg.XcodebuildOptions != "" {
@@ -241,9 +250,6 @@ func main() {
 			}
 			xcodeBuildCmd.SetCustomOptions(options)
 		}
-
-		// Disable indexing while building
-		xcodeBuildCmd.SetDisableIndexWhileBuilding(cfg.DisableIndexWhileBuilding)
 
 		var swiftPackagesPath string
 		if xcodeMajorVersion >= 11 {
