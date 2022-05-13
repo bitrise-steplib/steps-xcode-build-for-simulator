@@ -222,9 +222,6 @@ func main() {
 		xcodeBuildCmd.SetScheme(cfg.Scheme)
 		xcodeBuildCmd.SetConfiguration(conf)
 
-		// Disable the code signing for simulator build
-		xcodeBuildCmd.SetDisableCodesign(!cfg.CodeSigningAllowed)
-
 		// Set simulator destination and disable code signing for the build
 		xcodeBuildCmd.SetDestination("id=" + simulatorID)
 
@@ -238,6 +235,13 @@ func main() {
 		// Disable indexing while building
 		if cfg.DisableIndexWhileBuilding {
 			customBuildActions = append(customBuildActions, "COMPILER_INDEX_STORE_ENABLE=NO")
+		}
+
+		// Explicitly specify if code signing is allowed
+		if cfg.CodeSigningAllowed {
+			customBuildActions = append(customBuildActions, "CODE_SIGNING_ALLOWED=YES")
+		} else {
+			customBuildActions = append(customBuildActions, "CODE_SIGNING_ALLOWED=NO")
 		}
 
 		xcodeBuildCmd.SetCustomBuildAction(customBuildActions...)
