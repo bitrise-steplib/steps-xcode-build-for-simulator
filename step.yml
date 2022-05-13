@@ -22,6 +22,7 @@ description: |
   1. **Platform**: The platform you want to run the app on. The default value is `iOS`. Make sure that the values of the **Device model** input and the **Platform** input are compatible: for example, if you set **Device model** to `Apple TV 1080p`, set **Platform** to `tvOS`.
   1. **Configuration name**: By default, your Scheme's archive action defines which configuration is used, but you can overwrite it with this option. Ensure that the Configuration you specify exists in your Xcode Project; otherwise, this input will be ignored. 
   1. **Disable indexing during the build**: By setting this input to `no`, you can disable indexing during the build, which can speed up your build time.
+  1. **Allow Codesigning**: When building an app for the simulator, code signing is not required and is set to `no` by default. On rare occasions though, you may need to set the flag to `yes`, usually when working with certain test cases or third-party dependencies. 
   1. **Enable caching of Swift Package Manager packages**: To disable swift package caching, set this input to `none`.
 
   Under **Debug**:
@@ -154,6 +155,15 @@ inputs:
 
         **Note:** In Xcode you can turn off the `Index-WhileBuilding` feature  by disabling the `Enable Index-WhileBuilding Functionality` in the `Build Settings`.<br/>
         In CI environment you can disable it by adding `COMPILER_INDEX_STORE_ENABLE=NO` flag to the `xcodebuild` command.
+      value_options:
+        - "yes"
+        - "no"
+  - code_signing_allowed: "no"
+    opts:
+      title: Code Signing Allowed
+      description: |-
+        When building an app for the simulator, code signing is not required and is set to "no" by default.
+        Only on rare occasions do you need to set the flag to "yes", usually when working with certain test cases or third-party dependencies.
       value_options:
         - "yes"
         - "no"

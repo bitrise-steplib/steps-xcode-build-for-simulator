@@ -23,6 +23,7 @@ workflows:
     - test_workspace
     - test_multi_target_workspace_custom_derived_data_path
     - test_multi_target_workspace
+    - test_multi_target_workspace_code_signing_allowed
     # Disabled react-native due to detox installation failure
     # - test_react_native
     # - test_react_native_workspace
@@ -41,6 +42,7 @@ workflows:
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
+    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -56,6 +58,7 @@ workflows:
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/code-sign-test.app"
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/code-sign-test.app|$BITRISE_DEPLOY_DIR/watchkit-app.app"
+    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -71,6 +74,7 @@ workflows:
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
+    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -86,6 +90,7 @@ workflows:
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
+    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -101,8 +106,25 @@ workflows:
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
+    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
+
+  test_multi_target_workspace_code_signing_allowed:
+    envs:
+      - XCODEBUILD_OPTIONS:
+      - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+      - BRANCH: watch
+      - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
+      - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+      - SIMULATOR_OS_VERSION: "latest"
+      - OUTPUT_TOOL: xcpretty
+      - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+      - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
+      - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
+      - CODE_SIGNING_ALLOWED: "yes"
+    after_run:
+      - _common
 
   test_react_native:
     envs:
@@ -116,6 +138,7 @@ workflows:
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
+    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -131,6 +154,7 @@ workflows:
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
+    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -146,6 +170,7 @@ workflows:
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
+    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -161,6 +186,7 @@ workflows:
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/sample-swiftpm.app
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/sample-swiftpm.app
+    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -236,6 +262,7 @@ workflows:
             is_expand: "true"
         - xcodebuild_options: $XCODEBUILD_OPTIONS
         - verbose_log: "yes"
+        - code_signing_allowed: $CODE_SIGNING_ALLOWED
     - script:
         title: Output check
         inputs:
