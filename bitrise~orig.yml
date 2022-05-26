@@ -1,0 +1,296 @@
+format_version: 6
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+
+app:
+  envs:
+  - BITRISE_STEP_GIT_CLONE_URL: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator.git
+  - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
+
+  - ORIG_BITRISE_SOURCE_DIR: $BITRISE_SOURCE_DIR
+
+workflows:
+  ci:
+    before_run:
+    - audit-this-step
+    steps:
+    - go-list:
+    - golint:
+    - errcheck:
+    - go-test:
+    after_run:
+    - test_objc
+    - test_multi_target
+    - test_workspace
+    - test_multi_target_workspace_custom_derived_data_path
+    - test_multi_target_workspace
+    - test_multi_target_workspace_code_signing_allowed
+    # Disabled react-native due to detox installation failure
+    # - test_react_native
+    # - test_react_native_workspace
+    # - test_react_native_custom_target_build_dir
+
+
+  test_objc:
+    envs:
+    - XCODEBUILD_OPTIONS:
+    - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+    - BRANCH: master
+    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
+    - BITRISE_SCHEME: ios-simple-objc
+    - OUTPUT_TOOL: xcodebuild
+    - SIMULATOR_OS_VERSION: "latest"
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
+    - CODE_SIGNING_ALLOWED: "no"
+    after_run:
+    - _common
+
+  test_multi_target:
+    envs:
+    - XCODEBUILD_OPTIONS:
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
+    - COMMIT: "ab36ed563bbc3125118e9f27df91474822dc0d46"
+    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+    - BITRISE_SCHEME: code-sign-test
+    - SIMULATOR_OS_VERSION: "latest"
+    - OUTPUT_TOOL: xcpretty
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/code-sign-test.app"
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/code-sign-test.app|$BITRISE_DEPLOY_DIR/watchkit-app.app"
+    - CODE_SIGNING_ALLOWED: "no"
+    after_run:
+    - _common
+
+  test_workspace:
+    envs:
+    - XCODEBUILD_OPTIONS:
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+    - BRANCH: master
+    - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
+    - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+    - SIMULATOR_OS_VERSION: "latest"
+    - OUTPUT_TOOL: xcpretty
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
+    - CODE_SIGNING_ALLOWED: "no"
+    after_run:
+    - _common
+
+  test_multi_target_workspace_custom_derived_data_path:
+    envs:
+    - XCODEBUILD_OPTIONS: "-derivedDataPath ./ddata"
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+    - BRANCH: watch
+    - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
+    - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+    - SIMULATOR_OS_VERSION: "latest"
+    - OUTPUT_TOOL: xcodebuild
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
+    - CODE_SIGNING_ALLOWED: "no"
+    after_run:
+    - _common
+
+  test_multi_target_workspace:
+    envs:
+    - XCODEBUILD_OPTIONS:
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+    - BRANCH: watch
+    - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
+    - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+    - SIMULATOR_OS_VERSION: "latest"
+    - OUTPUT_TOOL: xcpretty
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
+    - CODE_SIGNING_ALLOWED: "no"
+    after_run:
+    - _common
+
+  test_multi_target_workspace_code_signing_allowed:
+    envs:
+      - XCODEBUILD_OPTIONS:
+      - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+      - BRANCH: watch
+      - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
+      - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+      - SIMULATOR_OS_VERSION: "latest"
+      - OUTPUT_TOOL: xcpretty
+      - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+      - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app"
+      - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app"
+      - CODE_SIGNING_ALLOWED: "yes"
+    after_run:
+      - _common
+
+  test_react_native:
+    envs:
+    - XCODEBUILD_OPTIONS: -UseModernBuildSystem=NO
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-project-react-native.git
+    - BRANCH: master
+    - BITRISE_PROJECT_PATH: ios/SampleProjectReactNative.xcodeproj
+    - BITRISE_SCHEME: SampleProjectReactNative
+    - SIMULATOR_OS_VERSION: "latest"
+    - OUTPUT_TOOL: xcpretty
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
+    - CODE_SIGNING_ALLOWED: "no"
+    after_run:
+    - _common
+
+  test_react_native_workspace:
+    envs:
+    - XCODEBUILD_OPTIONS: -UseModernBuildSystem=NO
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-project-react-native-xcworkspace.git
+    - BRANCH: master
+    - BITRISE_PROJECT_PATH: ios/SampleProjectReactNative.xcworkspace
+    - BITRISE_SCHEME: SampleProjectReactNative
+    - SIMULATOR_OS_VERSION: "latest"
+    - OUTPUT_TOOL: xcpretty
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
+    - CODE_SIGNING_ALLOWED: "no"
+    after_run:
+    - _common
+
+  test_react_native_custom_target_build_dir:
+    envs:
+    - XCODEBUILD_OPTIONS: -UseModernBuildSystem=NO
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-project-react-native.git
+    - BRANCH: custom_target_build_dir
+    - BITRISE_PROJECT_PATH: ios/SampleProjectReactNative.xcodeproj
+    - BITRISE_SCHEME: SampleProjectReactNative
+    - SIMULATOR_OS_VERSION: "latest"
+    - OUTPUT_TOOL: xcpretty
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: "$BITRISE_DEPLOY_DIR/SampleProjectReactNative.app"
+    - CODE_SIGNING_ALLOWED: "no"
+    after_run:
+    - _common
+
+  test_swiftpm:
+    envs:
+    - XCODEBUILD_OPTIONS:
+    - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-swiftpm.git
+    - BRANCH: master
+    - BITRISE_PROJECT_PATH: sample-swiftpm.xcodeproj
+    - BITRISE_SCHEME: "sample swiftpm"
+    - OUTPUT_TOOL: xcodebuild
+    - SIMULATOR_OS_VERSION: "latest"
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/sample-swiftpm.app
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/sample-swiftpm.app
+    - CODE_SIGNING_ALLOWED: "no"
+    after_run:
+    - _common
+
+  _common:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            rm -rf "$ORIG_BITRISE_SOURCE_DIR/_tmp"
+            mkdir -p "$ORIG_BITRISE_SOURCE_DIR/_tmp"
+    - change-workdir:
+        title: Switch working dir to _tmp dir
+        run_if: true
+        inputs:
+        - path: "$ORIG_BITRISE_SOURCE_DIR/_tmp"
+        - is_create_path: true
+    - script:
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+
+            if [[ -z "${SAMPLE_APP_URL}" ]]; then
+              echo "error: there is no SAMPLE_APP_URL env var specified"
+              exit 1
+            elif [[ -z "${COMMIT}" && -z "${BRANCH}" ]]; then
+              echo "error: can't checkout: there is no BRANCH or COMMIT env var specified"
+              exit 1
+            fi
+
+            git init
+            git remote add origin "${SAMPLE_APP_URL}"
+            git fetch || exit 1
+            [[ -n "${COMMIT}" ]] && git checkout "${COMMIT}" || git checkout "${BRANCH}"
+            
+    - script:
+        title: Install yarn deps if needed
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+
+            if [ -f yarn.lock ]; then
+              echo "yarn.lock file found in the root dir. Runing yarn install."
+              yarn install
+            else 
+              echo "No yarn.lock file found in the root dir."
+            fi
+    - script:
+        title: Install cocoapods if needed
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+
+            if [ -f Podfile.lock ]; then
+              echo "Podfile.lock file found in the root dir. Runing pod install."
+              pod install
+            elif [ -f ios/Podfile.lock ]; then
+              echo "Podfile.lock file found in the /ios dir. Runing pod install."
+              cd ios
+              pod install
+              cd ..
+            else
+              echo "No Podfile.lock file found."
+            fi
+    - path::./:
+        inputs:
+        - simulator_os_version: $SIMULATOR_OS_VERSION
+        - output_tool: $OUTPUT_TOOL
+          opts:
+            is_expand: "true"
+        - xcodebuild_options: $XCODEBUILD_OPTIONS
+        - verbose_log: "yes"
+        - code_signing_allowed: $CODE_SIGNING_ALLOWED
+    - script:
+        title: Output check
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -e
+
+            if [[ "$BITRISE_APP_DIR_PATH_EXPECTED" != "$BITRISE_APP_DIR_PATH" ]] ; then 
+              echo "BITRISE_APP_DIR_PATH (\"$BITRISE_APP_DIR_PATH\") should be: \"$BITRISE_APP_DIR_PATH_EXPECTED\""
+              exit 1
+            else
+              echo "BITRISE_APP_DIR_PATH: $BITRISE_APP_DIR_PATH"
+            fi
+
+            if [[ "$BITRISE_APP_DIR_PATH_LIST_EXPECTED" != "$BITRISE_APP_DIR_PATH_LIST" ]] ; then 
+              echo "BITRISE_APP_DIR_PATH_LIST (\"$BITRISE_APP_DIR_PATH_LIST\") should be: \"$BITRISE_APP_DIR_PATH_LIST_EXPECTED\""
+              exit 1
+            else
+              echo "BITRISE_APP_DIR_PATH_LIST: $BITRISE_APP_DIR_PATH_LIST"
+            fi
+
+  # ----------------------------------------------------------------
+  # --- workflows to Share this step into a Step Library
+  audit-this-step:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            stepman audit --step-yml ./step.yml
