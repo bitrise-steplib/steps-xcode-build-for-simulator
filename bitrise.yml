@@ -5,7 +5,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
   envs:
-    - BITRISE_STEP_GIT_CLONE_URL: |
+    - BITRISE_STEP_GIT_CLONE_URL: |-
         https://github.com/bitrise-steplib/steps-xcode-build-for-simulator.git
     - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
     - ORIG_BITRISE_SOURCE_DIR: $BITRISE_SOURCE_DIR
@@ -13,7 +13,7 @@ app:
 workflows:
   sample:
     envs:
-      - TEST_APP_URL: |
+      - TEST_APP_URL: |-
           https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
       - TEST_APP_BRANCH: master
       - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj

@@ -4,3 +4,4 @@ _tmp
 .idea
 .vscode
 steps-xcode-build-for-simulator
+bitrise~orig.yml
