@@ -18,9 +18,9 @@ description: |
 
   Minimum configuration:
 
-  1. In the **Project (or Workspace) Path** input, enter the path to your Xcode Project or Workspace.
+  1. In the **Project path** input, enter the path to your Xcode Project or Workspace.
     (Only necessary if you plan to use a different scheme than the one set in the `BITRISE_PROJECT_PATH` Environment Variable.)
-  1. In the **Scheme Name** input, enter the name of the Scheme you'd like to use for building your project.
+  1. In the **Scheme** input, enter the name of the Scheme you'd like to use for building your project.
     (Only necessary if you plan to use a different scheme than the one set in the `BITRISE_SCHEME` Environment Variable.)
 
   For more configuration options, see the descriptions of other inputs in the `step.yml` or in the Workflow Editor. 
@@ -61,15 +61,25 @@ toolkit:
 inputs:
   - project_path: $BITRISE_PROJECT_PATH
     opts:
-      title: Project (or Workspace) path
-      summary: The path to your project's `.xcodeproj` or `.xcworkspace`
-      description: The path to your project's `.xcodeproj` or `.xcworkspace`
+      title: Project path
+      summary: Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`) path.
+      description: |-
+        Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`) path.
+
+        _xcodebuild steps:_
+
+        The input value sets xcodebuild's `-project` or `-workspace` option.
       is_required: "true"
   - scheme: $BITRISE_SCHEME
     opts:
-      title: Scheme name
-      summary: The name of the Xcode Scheme to use when building your project
-      description: The name of the Xcode Scheme to use when building your project
+      title: Scheme
+      summary: Xcode Scheme name.
+      description: |-
+        Xcode Scheme name.
+        
+        _xcodebuild steps:_
+        
+        The input value sets xcodebuild's `-scheme` option.
       is_required: "true"
   - simulator_device: iPhone 8 Plus
     opts:
@@ -142,12 +152,15 @@ inputs:
         - "no"
   - cache_level: swift_packages
     opts:
-      title: Enable caching of Swift Package Manager packages
+      title: Enable collecting cache content
+      summary: Defines what cache content should be automatically collected.
       description: |-
+        Defines what cache content should be automatically collected.
+
         Available options:
 
-        - `none`: Disable caching
-        - `swift_packages`: Cache Swift Package Manager packages added to the Xcode project
+        - `none`: Disable collecting cache content
+        - `swift_packages`: Collect Swift PM packages added to the Xcode project
       value_options:
       - "none"
       - "swift_packages"
@@ -155,11 +168,9 @@ inputs:
   - xcodebuild_options: ""
     opts:
       category: Debug
-      title: Additional `xcodebuild` options
-      description: |-
-        Additional options to be added to the `xcodebuild` call.
-
-        You can include multiple options, separated by a " " (space) character. (Example: `-xcconfig PATH -verbose`)
+      title: Additional options for the xcodebuild command
+      summary: Additional options to be added to the executed xcodebuild command.
+      description: Additional options to be added to the executed xcodebuild command.
   - workdir: $BITRISE_SOURCE_DIR
     opts:
       category: Debug
@@ -170,8 +181,8 @@ inputs:
     opts:
       category: Debug
       title: Output directory path
-      summary: The directory in which to place generated `.app` artifacts
-      description: The directory in which to place generated `.app` artifacts
+      summary: This directory will contain the generated artifacts.
+      description: This directory will contain the generated artifacts.
       is_required: "true"
   - is_clean_build: "no"
     opts:
@@ -184,15 +195,17 @@ inputs:
   - output_tool: xcpretty
     opts:
       category: Debug
-      title: Output tool
-      Summary: The tool to use for log output
+      title: Log formatter
+      Summary: Defines how xcodebuild command's log is formatted.
       description: |-
-        Available options:
-        
-        - `xcpretty`: `xcodebuild` log output will be prettified using `xcpretty`
-        - `xcodebuild`: The raw `xcodebuild` output will be printed
+        Defines how xcodebuild command's log is formatted.
 
-        Note: `xcodebuild` will be used as a fallback option if there are issues when attempting to use `xcpretty`.
+        Available options:
+
+        - `xcpretty`: The xcodebuild command's output will be prettified by xcpretty.
+        - `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.
+
+        The raw xcodebuild log will be exported in both cases.
       value_options:
       - xcpretty
       - xcodebuild
@@ -201,8 +214,9 @@ inputs:
   - verbose_log: "no"
     opts:
       category: Debug
-      title: Verbose logging
-      description: Whether or not to enable verbose logging for this Step.
+      title: Enable verbose logging
+      summary: If this input is set, the Step will print additional logs for debugging.
+      description: If this input is set, the Step will print additional logs for debugging.
       is_required: "true"
       value_options:
       - "yes"
