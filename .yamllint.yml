@@ -3,6 +3,7 @@
 extends: default
 
 ignore: |
-  bitrise~orig.yml
-  step.yml
   vendor/
+
+rules:
+  line-length: disable
