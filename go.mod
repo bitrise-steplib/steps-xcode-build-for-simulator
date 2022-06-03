@@ -1,6 +1,6 @@
 module github.com/bitrise-steplib/steps-xcode-build-for-simulator
 
-go 1.18
+go 1.17
 
 require (
 	github.com/bitrise-io/go-steputils v1.0.1
