@@ -22,7 +22,7 @@ workflows:
     envs:
     - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-    - COMMIT: ab36ed563bbc3125118e9f27df91474822dc0d46
+    - BRANCH: master
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - SIMULATOR_OS_VERSION: latest
@@ -116,7 +116,7 @@ workflows:
         inputs:
         - repository_url: $SAMPLE_APP_URL
         - branch: $BRANCH
-        - clone_into_dir: ./_tmp
+        - clone_into_dir: ./
     - script:
         title: Install yarn deps if needed
         inputs:
