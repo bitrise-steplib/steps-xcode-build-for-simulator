@@ -4,7 +4,7 @@ on:
   # Allows manually running
   # https://docs.github.com/en/actions/reference/events-that-trigger-workflows#manual-events
   workflow_dispatch:
-
+  
   schedule:
     # Runs at 08:00 UTC every day
     # https://docs.github.com/en/actions/reference/events-that-trigger-workflows#schedule
