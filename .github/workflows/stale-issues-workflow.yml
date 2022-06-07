@@ -36,7 +36,7 @@ jobs:
 
             The community would appreciate if you could check if the issue still persists. If it isn't, please close it.
             If the issue persists, and you'd like to remove the stale label, you simply need to leave a comment. Your comment can be as simple as "still important to me".
-
+            
             If no comment left within 21 days, this issue will be closed.
           close-issue-message: >
             I'll close this issue as it doesn't seem to be relevant anymore.
@@ -55,5 +55,5 @@ jobs:
           # do not manage PRs
           process-only: issues
           # stale issue config
-          issue-lock-inactive-days: 0  # immediately lock closed issues
+          issue-lock-inactive-days: 0 # immediately lock closed issues
           issue-lock-reason: ''
