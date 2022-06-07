@@ -1,8 +1,5 @@
----
-
 name: Stale Issues Workflow
 
-# yamllint disable-line rule:truthy
 on:
   # Allows manually running
   # https://docs.github.com/en/actions/reference/events-that-trigger-workflows#manual-events
