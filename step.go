@@ -321,7 +321,7 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 			customOptions = append(customOptions, simulatorName)
 		}
 
-		schemeBuildDir, err := buildTargetDirForScheme(proj, absProjectPath, cfg.Scheme, conf, customOptions...)
+		schemeBuildDir, err := buildTargetDirForScheme(proj, absProjectPath, *scheme, conf, customOptions...)
 		if err != nil {
 			return ExportOptions{}, fmt.Errorf("failed to get scheme (%s) build target dir, error: %s", cfg.Scheme, err)
 		}
@@ -329,7 +329,7 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 		log.Debugf("Scheme build dir: %s", schemeBuildDir)
 
 		// Export the artifact from the build dir to the output_dir
-		if exportedArtifacts, err = exportArtifacts(proj, cfg.Scheme, schemeBuildDir, conf, cfg.SimulatorPlatform, absOutputDir); err != nil {
+		if exportedArtifacts, err = exportArtifacts(proj, *scheme, schemeBuildDir, conf, cfg.SimulatorPlatform, absOutputDir); err != nil {
 			return ExportOptions{}, fmt.Errorf("failed to export the artifacts, error: %s", err)
 		}
 	}
@@ -455,11 +455,11 @@ func findBuiltProject(scheme *xcscheme.Scheme, schemeContainerDir, configuration
 }
 
 // buildTargetDirForScheme returns the TARGET_BUILD_DIR for the provided scheme
-func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, configuration string, customOptions ...string) (string, error) {
+func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath string, scheme xcscheme.Scheme, configuration string, customOptions ...string) (string, error) {
 	// Fetch project's main target from .xcodeproject
 	var buildSettings serialized.Object
 	if xcodeproj.IsXcodeProj(projectPath) {
-		mainTarget, err := mainTargetOfScheme(proj, scheme)
+		mainTarget, err := mainTargetOfScheme(scheme, proj.Proj.Targets)
 		if err != nil {
 			return "", fmt.Errorf("failed to fetch project's targets, error: %s", err)
 		}
@@ -474,7 +474,7 @@ func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, conf
 			return "", fmt.Errorf("Failed to open xcworkspace (%s), error: %s", projectPath, err)
 		}
 
-		buildSettings, err = workspace.SchemeBuildSettings(scheme, configuration, customOptions...)
+		buildSettings, err = workspace.SchemeBuildSettings(scheme.Name, configuration, customOptions...)
 		if err != nil {
 			return "", fmt.Errorf("failed to parse workspace (%s) build settings, error: %s", projectPath, err)
 		}
@@ -492,11 +492,11 @@ func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, conf
 	return schemeBuildDir, nil
 }
 
-func wrapperNameForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, configuration string, customOptions ...string) (string, error) {
+func wrapperNameForScheme(proj xcodeproj.XcodeProj, projectPath string, scheme xcscheme.Scheme, configuration string, customOptions ...string) (string, error) {
 	// Fetch project's main target from .xcodeproject
 	var buildSettings serialized.Object
 	if xcodeproj.IsXcodeProj(projectPath) {
-		mainTarget, err := mainTargetOfScheme(proj, scheme)
+		mainTarget, err := mainTargetOfScheme(scheme, proj.Proj.Targets)
 		if err != nil {
 			return "", fmt.Errorf("failed to fetch project's targets, error: %s", err)
 		}
@@ -511,7 +511,7 @@ func wrapperNameForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, configu
 			return "", fmt.Errorf("failed to open xcworkspace (%s), error: %s", projectPath, err)
 		}
 
-		buildSettings, err = workspace.SchemeBuildSettings(scheme, configuration, customOptions...)
+		buildSettings, err = workspace.SchemeBuildSettings(scheme.Name, configuration, customOptions...)
 		if err != nil {
 			return "", fmt.Errorf("failed to parse workspace (%s) build settings, error: %s", projectPath, err)
 		}
@@ -530,7 +530,7 @@ func wrapperNameForScheme(proj xcodeproj.XcodeProj, projectPath, scheme, configu
 }
 
 // exportArtifacts exports the main target and it's .app dependencies.
-func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir string, configuration, simulatorPlatform, deployDir string, customOptions ...string) ([]string, error) {
+func exportArtifacts(proj xcodeproj.XcodeProj, scheme xcscheme.Scheme, schemeBuildDir, configuration, simulatorPlatform, deployDir string, customOptions ...string) ([]string, error) {
 	var exportedArtifacts []string
 	splitSchemeDir := strings.Split(schemeBuildDir, "Build/")
 	var schemeDir string
@@ -546,7 +546,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 		schemeDir = filepath.Join(splitSchemeDir[0], "Build")
 	}
 
-	mainTarget, err := mainTargetOfScheme(proj, scheme)
+	mainTarget, err := mainTargetOfScheme(scheme, proj.Proj.Targets)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch project's targets, error: %s", err)
 	}
@@ -689,15 +689,9 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme string, schemeBuildDir str
 }
 
 // mainTargetOfScheme return the main target
-func mainTargetOfScheme(proj xcodeproj.XcodeProj, scheme string) (xcodeproj.Target, error) {
-	projTargets := proj.Proj.Targets
-	sch, _, err := proj.Scheme(scheme)
-	if err != nil {
-		return xcodeproj.Target{}, fmt.Errorf("failed to get scheme (%s) from project (%s), error: %s", scheme, proj.Path, err)
-	}
-
+func mainTargetOfScheme(scheme xcscheme.Scheme, targets []xcodeproj.Target) (xcodeproj.Target, error) {
 	var blueIdent string
-	for _, entry := range sch.BuildAction.BuildActionEntries {
+	for _, entry := range scheme.BuildAction.BuildActionEntries {
 		if entry.BuildableReference.IsAppReference() {
 			blueIdent = entry.BuildableReference.BlueprintIdentifier
 			break
@@ -705,13 +699,12 @@ func mainTargetOfScheme(proj xcodeproj.XcodeProj, scheme string) (xcodeproj.Targ
 	}
 
 	// Search for the main target
-	for _, t := range projTargets {
+	for _, t := range targets {
 		if t.ID == blueIdent {
 			return t, nil
-
 		}
 	}
-	return xcodeproj.Target{}, fmt.Errorf("failed to find the project's main target for scheme (%s)", scheme)
+	return xcodeproj.Target{}, fmt.Errorf("failed to find the project's main target for scheme (%s)", scheme.Name)
 }
 
 // simulatorDestinationID return the simulator's ID for the selected device version.

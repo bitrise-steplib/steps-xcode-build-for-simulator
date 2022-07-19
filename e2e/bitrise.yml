@@ -50,6 +50,22 @@ workflows:
     after_run:
     - _common
 
+  test_scheme_in_workspace:
+    envs:
+    - XCODEBUILD_OPTIONS:
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+    - BRANCH: scheme-in-workspace
+    - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
+    - BITRISE_SCHEME: sample-apps-ios-workspace-swift-workspace
+    - SIMULATOR_OS_VERSION: latest
+    - OUTPUT_TOOL: xcpretty
+    - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
+    - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app
+    - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app
+    - CODE_SIGNING_ALLOWED: "no"
+    after_run:
+    - _common
+
   test_multi_target_workspace_custom_derived_data_path:
     envs:
     - XCODEBUILD_OPTIONS: -derivedDataPath ./ddata
