@@ -14,7 +14,6 @@ import (
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
-	"github.com/bitrise-io/go-xcode/simulator"
 	"github.com/bitrise-io/go-xcode/utility"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	cache "github.com/bitrise-io/go-xcode/xcodecache"
@@ -178,20 +177,6 @@ func (b BuildForSimulatorStep) Run(cfg Config) (ExportOptions, error) {
 
 		}
 	}
-
-	//
-	// Get simulator info from the provided OS, platform and device
-	// var simulatorID string
-	// {
-	// 	fmt.Println()
-	// 	log.Infof("Simulator info")
-
-	// 	// Simulator Destination
-	// 	simulatorID, err = simulatorDestinationID(cfg.SimulatorOsVersion, cfg.SimulatorPlatform, cfg.SimulatorDevice)
-	// 	if err != nil {
-	// 		return ExportOptions{}, fmt.Errorf("failed to find simulator, error: %s", err)
-	// 	}
-	// }
 
 	absProjectPath, err := filepath.Abs(cfg.ProjectPath)
 	if err != nil {
@@ -706,28 +691,4 @@ func mainTargetOfScheme(scheme xcscheme.Scheme, targets []xcodeproj.Target) (xco
 		}
 	}
 	return xcodeproj.Target{}, fmt.Errorf("failed to find the project's main target for scheme (%s)", scheme.Name)
-}
-
-// simulatorDestinationID return the simulator's ID for the selected device version.
-func simulatorDestinationID(simulatorOsVersion, simulatorPlatform, simulatorDevice string) (string, error) {
-	var simulatorID string
-
-	if simulatorOsVersion == "latest" {
-		info, _, err := simulator.GetLatestSimulatorInfoAndVersion(simulatorPlatform, simulatorDevice)
-		if err != nil {
-			return "", fmt.Errorf("failed to get latest simulator info - error: %s", err)
-		}
-
-		simulatorID = info.ID
-		log.Printf("Latest simulator for %s = %s", simulatorDevice, simulatorID)
-	} else {
-		info, err := simulator.GetSimulatorInfo((simulatorPlatform + " " + simulatorOsVersion), simulatorDevice)
-		if err != nil {
-			return "", fmt.Errorf("failed to get simulator info (%s-%s) - error: %s", (simulatorPlatform + simulatorOsVersion), simulatorDevice, err)
-		}
-
-		simulatorID = info.ID
-		log.Printf("Simulator for %s %s = %s", simulatorDevice, simulatorOsVersion, simulatorID)
-	}
-	return simulatorID, nil
 }
