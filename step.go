@@ -2,6 +2,11 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/errorutil"
@@ -21,10 +26,6 @@ import (
 	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/bitrise-steplib/steps-xcode-build-for-simulator/util"
 	"github.com/kballard/go-shellquote"
-	"os"
-	"path"
-	"path/filepath"
-	"strings"
 )
 
 const (
@@ -180,17 +181,17 @@ func (b BuildForSimulatorStep) Run(cfg Config) (ExportOptions, error) {
 
 	//
 	// Get simulator info from the provided OS, platform and device
-	var simulatorID string
-	{
-		fmt.Println()
-		log.Infof("Simulator info")
+	// var simulatorID string
+	// {
+	// 	fmt.Println()
+	// 	log.Infof("Simulator info")
 
-		// Simulator Destination
-		simulatorID, err = simulatorDestinationID(cfg.SimulatorOsVersion, cfg.SimulatorPlatform, cfg.SimulatorDevice)
-		if err != nil {
-			return ExportOptions{}, fmt.Errorf("failed to find simulator, error: %s", err)
-		}
-	}
+	// 	// Simulator Destination
+	// 	simulatorID, err = simulatorDestinationID(cfg.SimulatorOsVersion, cfg.SimulatorPlatform, cfg.SimulatorDevice)
+	// 	if err != nil {
+	// 		return ExportOptions{}, fmt.Errorf("failed to find simulator, error: %s", err)
+	// 	}
+	// }
 
 	absProjectPath, err := filepath.Abs(cfg.ProjectPath)
 	if err != nil {
@@ -235,7 +236,7 @@ func (b BuildForSimulatorStep) Run(cfg Config) (ExportOptions, error) {
 		xcodeBuildCmd.SetConfiguration(conf)
 
 		// Set simulator destination and disable code signing for the build
-		xcodeBuildCmd.SetDestination("id=" + simulatorID)
+		xcodeBuildCmd.SetDestination("generic/platform=iOS Simulator")
 
 		var customBuildActions []string
 
