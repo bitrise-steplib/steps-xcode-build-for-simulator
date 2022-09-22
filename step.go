@@ -14,7 +14,6 @@ import (
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
-	"github.com/bitrise-io/go-xcode/simulator"
 	"github.com/bitrise-io/go-xcode/utility"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	cache "github.com/bitrise-io/go-xcode/xcodecache"
@@ -713,28 +712,4 @@ func mainTargetOfScheme(proj xcodeproj.XcodeProj, scheme string) (xcodeproj.Targ
 		}
 	}
 	return xcodeproj.Target{}, fmt.Errorf("failed to find the project's main target for scheme (%s)", scheme)
-}
-
-// simulatorDestinationID return the simulator's ID for the selected device version.
-func simulatorDestinationID(simulatorOsVersion, simulatorPlatform, simulatorDevice string) (string, error) {
-	var simulatorID string
-
-	if simulatorOsVersion == "latest" {
-		info, _, err := simulator.GetLatestSimulatorInfoAndVersion(simulatorPlatform, simulatorDevice)
-		if err != nil {
-			return "", fmt.Errorf("failed to get latest simulator info - error: %s", err)
-		}
-
-		simulatorID = info.ID
-		log.Printf("Latest simulator for %s = %s", simulatorDevice, simulatorID)
-	} else {
-		info, err := simulator.GetSimulatorInfo((simulatorPlatform + " " + simulatorOsVersion), simulatorDevice)
-		if err != nil {
-			return "", fmt.Errorf("failed to get simulator info (%s-%s) - error: %s", (simulatorPlatform + simulatorOsVersion), simulatorDevice, err)
-		}
-
-		simulatorID = info.ID
-		log.Printf("Simulator for %s %s = %s", simulatorDevice, simulatorOsVersion, simulatorID)
-	}
-	return simulatorID, nil
 }
