@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/bitrise-io/go-steputils/output"
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/errorutil"
@@ -17,12 +18,11 @@ import (
 	"github.com/bitrise-io/go-xcode/utility"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	cache "github.com/bitrise-io/go-xcode/xcodecache"
+	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
+	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
+	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
+	"github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace"
 	"github.com/bitrise-io/go-xcode/xcpretty"
-	"github.com/bitrise-io/xcode-project/serialized"
-	"github.com/bitrise-io/xcode-project/xcodeproj"
-	"github.com/bitrise-io/xcode-project/xcscheme"
-	"github.com/bitrise-io/xcode-project/xcworkspace"
-	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/bitrise-steplib/steps-xcode-build-for-simulator/util"
 	"github.com/kballard/go-shellquote"
 )
@@ -208,50 +208,34 @@ func (b BuildForSimulatorStep) Run(cfg Config) (ExportOptions, error) {
 		fmt.Println()
 		log.Infof("Running build")
 
-		var isWorkspace bool
-		if xcworkspace.IsWorkspace(absProjectPath) {
-			isWorkspace = true
-		} else if !xcodeproj.IsXcodeProj(absProjectPath) {
-			return ExportOptions{}, fmt.Errorf("project file extension should be .xcodeproj or .xcworkspace, but got: %s", filepath.Ext(absProjectPath))
+		actions := []string{"build"}
+		if cfg.IsCleanBuild {
+			actions = append(actions, "clean")
 		}
 
 		// Build for simulator command
-		xcodeBuildCmd := xcodebuild.NewCommandBuilder(absProjectPath, isWorkspace, xcodebuild.BuildAction)
+		xcodeBuildCmd := xcodebuild.NewCommandBuilder(absProjectPath, actions...)
 		xcodeBuildCmd.SetScheme(cfg.Scheme)
 		xcodeBuildCmd.SetConfiguration(conf)
 
 		// Set simulator destination and disable code signing for the build
 		xcodeBuildCmd.SetDestination("generic/platform=iOS Simulator")
 
-		var customBuildActions []string
-
-		// Clean build
-		if cfg.IsCleanBuild {
-			customBuildActions = append(customBuildActions, "clean")
+		options, err := shellquote.Split(cfg.XcodebuildOptions)
+		if err != nil {
+			return ExportOptions{}, fmt.Errorf("failed to shell split XcodebuildOptions (%s), error: %s", cfg.XcodebuildOptions, err)
 		}
-
 		// Disable indexing while building
 		if cfg.DisableIndexWhileBuilding {
-			customBuildActions = append(customBuildActions, "COMPILER_INDEX_STORE_ENABLE=NO")
+			options = append(options, "COMPILER_INDEX_STORE_ENABLE=NO")
 		}
-
 		// Explicitly specify if code signing is allowed
 		if cfg.CodeSigningAllowed {
-			customBuildActions = append(customBuildActions, "CODE_SIGNING_ALLOWED=YES")
+			options = append(options, "CODE_SIGNING_ALLOWED=YES")
 		} else {
-			customBuildActions = append(customBuildActions, "CODE_SIGNING_ALLOWED=NO")
+			options = append(options, "CODE_SIGNING_ALLOWED=NO")
 		}
-
-		xcodeBuildCmd.SetCustomBuildAction(customBuildActions...)
-
-		// XcodeBuild Options
-		if cfg.XcodebuildOptions != "" {
-			options, err := shellquote.Split(cfg.XcodebuildOptions)
-			if err != nil {
-				return ExportOptions{}, fmt.Errorf("failed to shell split XcodebuildOptions (%s), error: %s", cfg.XcodebuildOptions, err)
-			}
-			xcodeBuildCmd.SetCustomOptions(options)
-		}
+		xcodeBuildCmd.SetCustomOptions(options)
 
 		var swiftPackagesPath string
 		if xcodeMajorVersion >= 11 {
@@ -267,7 +251,7 @@ func (b BuildForSimulatorStep) Run(cfg Config) (ExportOptions, error) {
 				log.Errorf("\nLast lines of the Xcode's build log:")
 				fmt.Println(stringutil.LastNLines(rawXcodeBuildOut, 10))
 
-				if err := utils.ExportOutputFileContent(rawXcodeBuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
+				if err := output.ExportOutputFileContent(rawXcodeBuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
 					log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
 				} else {
 					log.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log is also available in the raw-xcodebuild-output.log
@@ -537,13 +521,12 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme xcscheme.Scheme, schemeBui
 		return nil, fmt.Errorf("failed to fetch project's targets, error: %s", err)
 	}
 
-	targets := append([]xcodeproj.Target{mainTarget}, mainTarget.DependentExecutableProductTargets(false)...)
-
+	targets := append([]xcodeproj.Target{mainTarget}, proj.DependentTargetsOfTarget(mainTarget)...)
 	for _, target := range targets {
 		log.Donef(target.Name + "...")
 
 		// Is the target an application? -> If not skip the export
-		if !strings.HasSuffix(target.ProductReference.Path, ".app") {
+		if !target.IsAppProduct() {
 			log.Printf("Target (%s) is not an .app - SKIP", target.Name)
 			continue
 		}
