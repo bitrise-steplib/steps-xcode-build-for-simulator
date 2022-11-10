@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/bitrise-io/go-utils/log"
 	"os"
+
+	"github.com/bitrise-io/go-utils/log"
 )
 
 func main() {
@@ -12,19 +13,19 @@ func main() {
 func run() int {
 	step := createStep()
 
-	cfg, err := step.ProcessConfig()
+	runOpts, err := step.ProcessConfig()
 	if err != nil {
 		log.Errorf("Error processing config: %s", err)
 		return 1
 	}
 
-	cfg, err = step.InstallDependencies(cfg)
+	runOpts, err = step.InstallDependencies(runOpts)
 	if err != nil {
 		log.Errorf("Error installing dependencies: %s", err)
 		return 1
 	}
 
-	exportOptions, err := step.Run(cfg)
+	exportOptions, err := step.Run(runOpts)
 	if err != nil {
 		log.Errorf("Error running step: %s", err)
 		return 1
