@@ -187,7 +187,9 @@ func (b BuildForSimulatorStep) InstallDependencies(cfg RunOpts) (RunOpts, error)
 						log.Warnf("%s failed: %s", err)
 					}
 					log.Warnf("Switching to xcodebuild for output tool")
-					outputTool = "xcodebuild"
+
+					cfg.LogFormatter = "xcodebuild"
+					return cfg, nil
 				}
 			}
 		}
@@ -196,11 +198,14 @@ func (b BuildForSimulatorStep) InstallDependencies(cfg RunOpts) (RunOpts, error)
 	if err != nil {
 		log.Warnf("Failed to determine xcpretty version, error: %s", err)
 		log.Printf("Switching to xcodebuild for output tool")
-		outputTool = "xcodebuild"
-	}
-	log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 
+		cfg.LogFormatter = "xcodebuild"
+		return cfg, nil
+	}
+
+	log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 	cfg.LogFormatter = outputTool
+
 	return cfg, nil
 }
 
