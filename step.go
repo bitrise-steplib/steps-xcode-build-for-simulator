@@ -70,8 +70,6 @@ type RunOpts struct {
 	Destination         string
 	DestinationPlatform destination.Platform
 
-	XcodeMajorVersion int
-
 	Configuration               string
 	XCConfigContent             string
 	PerformCleanAction          bool
@@ -149,6 +147,8 @@ func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 		XcodebuildAdditionalOptions: additionalOptions,
 		LogFormatter:                config.LogFormatter,
 
+		OutputDir: config.OutputDir,
+
 		CacheLevel: config.CacheLevel,
 	}, nil
 }
@@ -222,14 +222,14 @@ func (s BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
 	// ABS out dir pth
 	absOutputDir, err := s.pathModifier.AbsPath(cfg.OutputDir)
 	if err != nil {
-		return ExportOptions{}, fmt.Errorf("failed to expand OutputDir (%s), error: %s", cfg.OutputDir, err)
+		return ExportOptions{}, fmt.Errorf("failed to expand `output_dir` (%s): %s", cfg.OutputDir, err)
 	}
 
 	if exist, err := s.pathChecker.IsPathExists(absOutputDir); err != nil {
-		return ExportOptions{}, fmt.Errorf("failed to check if OutputDir exist, error: %s", err)
+		return ExportOptions{}, fmt.Errorf("failed to check if `output_dir` exist: %s", err)
 	} else if !exist {
 		if err := os.MkdirAll(absOutputDir, 0777); err != nil {
-			return ExportOptions{}, fmt.Errorf("failed to create OutputDir (%s), error: %s", absOutputDir, err)
+			return ExportOptions{}, fmt.Errorf("failed to create `output_dir` (%s): %s", absOutputDir, err)
 		}
 	}
 
