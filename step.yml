@@ -168,7 +168,6 @@ inputs:
     - xcpretty
     - xcodebuild
     is_required: true
-    is_expand: false
 
 # Step Output Export configuration
 
