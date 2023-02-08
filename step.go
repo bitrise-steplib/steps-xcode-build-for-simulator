@@ -220,12 +220,12 @@ func (s BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
 	}
 
 	// ABS out dir pth
-	absOutputDir, err := pathutil.AbsPath(cfg.OutputDir)
+	absOutputDir, err := s.pathModifier.AbsPath(cfg.OutputDir)
 	if err != nil {
 		return ExportOptions{}, fmt.Errorf("failed to expand OutputDir (%s), error: %s", cfg.OutputDir, err)
 	}
 
-	if exist, err := pathutil.IsPathExists(absOutputDir); err != nil {
+	if exist, err := s.pathChecker.IsPathExists(absOutputDir); err != nil {
 		return ExportOptions{}, fmt.Errorf("failed to check if OutputDir exist, error: %s", err)
 	} else if !exist {
 		if err := os.MkdirAll(absOutputDir, 0777); err != nil {
