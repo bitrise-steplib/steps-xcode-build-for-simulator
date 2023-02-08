@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	minSupportedXcodeMajorVersion = 7
+	minSupportedXcodeMajorVersion = 11
 	iOSSimName                    = "iphonesimulator"
 	tvOSSimName                   = "appletvsimulator"
 	watchOSSimName                = "watchsimulator"
@@ -300,12 +300,9 @@ func (s BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
 			xcodeBuildCmd.SetXCConfigPath(xcconfigPath)
 		}
 
-		var swiftPackagesPath string
-		if xcodeMajorVersion >= 11 {
-			var err error
-			if swiftPackagesPath, err = cache.SwiftPackagesPath(absProjectPath); err != nil {
-				return ExportOptions{}, fmt.Errorf("failed to get Swift Packages path, error: %s", err)
-			}
+		swiftPackagesPath, err := cache.SwiftPackagesPath(absProjectPath)
+		if err != nil {
+			return ExportOptions{}, fmt.Errorf("failed to get Swift Packages path: %s", err)
 		}
 
 		rawXcodeBuildOut, err := runCommandWithRetry(xcodeBuildCmd, cfg.LogFormatter == "xcpretty", swiftPackagesPath)
