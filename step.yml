@@ -56,7 +56,8 @@ inputs:
     title: Project path
     summary: Path of the Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`)
     description: |-
-      Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`) path.
+      Path of the Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`)
+
       The input value sets xcodebuild's `-project` or `-workspace` option.
     is_required: true
 
@@ -70,7 +71,7 @@ inputs:
       The input value sets xcodebuild's `-scheme` option.
     is_required: true
 
-- destination: "generic/platform=iOS Simulator"
+- destination: generic/platform=iOS Simulator
   opts:
     title: Device destination specifier
     summary: Destination specifier describes the device to use as a destination.
@@ -80,39 +81,22 @@ inputs:
       The input value sets xcodebuild's `-destination` option.
     is_required: true
     value_options:
-    - "generic/platform=iOS Simulator"
-    - "generic/platform=watchOS Simulator"
-    - "generic/platform=tvOS Simulator"
-
-- configuration:
-  opts:
-    category: xcodebuild configuration
-    title: Build Configuration
-    summary: Xcode Build Configuration.
-    description: |-
-      Xcode Build Configuration.
-
-      If not specified, the default Build Configuration will be used. (Defined in the Scheme's archive action )
-
-      The input value sets xcodebuild's `-configuration` option.
-
-      **If the Configuration specified in this input does not exist in your project, the Step will silently ignore the value, and fall back to using the Configuration specified in the Scheme.**
+    - generic/platform=iOS Simulator
+    - generic/platform=watchOS Simulator
+    - generic/platform=tvOS Simulator
 
 - xcconfig_content: |-
     CODE_SIGNING_ALLOWED=NO
     COMPILER_INDEX_STORE_ENABLE = NO
   opts:
-    category: xcodebuild configuration
-    title: Build settings (xcconfig)
+    title: Build settings (xcconfig), allow code signing
     summary: Build settings to override the project's build settings, using xcodebuild's `-xcconfig` option.
     description: |-
-      Code signing allowed: Whether or not to allow code signing for this build
-      When building an app for the simulator, code signing is not required and is set to "no" by default.
-
-      On rare occasions, you may need to set the flag to "yes" — usually when working with certain test cases or third-party dependencies.
-
-
       Build settings to override the project's build settings, using xcodebuild's `-xcconfig` option.
+
+      *Code signing allowed: Whether or not to allow code signing for this build*
+      When building an app for the simulator, code signing is not required and is set to "no" by default.
+      On rare occasions, you may need to set the flag to "yes" — usually when working with certain test cases or third-party dependencies.
 
       You can't define `-xcconfig` option in `Additional options for the xcodebuild command` if this input is set.
 
@@ -132,6 +116,20 @@ inputs:
           COMPILER_INDEX_STORE_ENABLE = NO
           ONLY_ACTIVE_ARCH[config=Debug][sdk=*][arch=*] = YES
           ```
+
+- configuration:
+  opts:
+    category: xcodebuild configuration
+    title: Build Configuration
+    summary: Xcode Build Configuration.
+    description: |-
+      Xcode Build Configuration.
+
+      If not specified, the default Build Configuration will be used. (Defined in the Scheme's archive action )
+
+      The input value sets xcodebuild's `-configuration` option.
+
+      **If the Configuration specified in this input does not exist in your project, the Step will silently ignore the value, and fall back to using the Configuration specified in the Scheme.**
 
 - perform_clean_action: "no"
   opts:
