@@ -4,6 +4,8 @@ import (
 	"os"
 
 	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/v2/fileutil"
+	"github.com/bitrise-io/go-utils/v2/pathutil"
 )
 
 func main() {
@@ -41,5 +43,10 @@ func run() int {
 }
 
 func createStep() BuildForSimulatorStep {
-	return NewBuildForSimulatorStep()
+	pathProvider := pathutil.NewPathProvider()
+	pathChecker := pathutil.NewPathChecker()
+	pathModifier := pathutil.NewPathModifier()
+	fileManager := fileutil.NewFileManager()
+
+	return NewBuildForSimulatorStep(pathProvider, pathChecker, pathModifier, fileManager)
 }

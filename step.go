@@ -15,8 +15,11 @@ import (
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
+	"github.com/bitrise-io/go-utils/v2/fileutil"
+	v2pathutil "github.com/bitrise-io/go-utils/v2/pathutil"
 	"github.com/bitrise-io/go-xcode/utility"
 	"github.com/bitrise-io/go-xcode/v2/destination"
+	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	cache "github.com/bitrise-io/go-xcode/xcodecache"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
@@ -72,61 +75,81 @@ type RunOpts struct {
 	Configuration               string
 	XCConfigContent             string
 	PerformCleanAction          bool
-	XcodebuildAdditionalOptions string
+	XcodebuildAdditionalOptions []string
 	LogFormatter                string
 
 	OutputDir string
 
 	CacheLevel string
-
-	DisableIndexWhileBuilding bool
-	CodeSigningAllowed        bool
 }
 
 // BuildForSimulatorStep ...
-type BuildForSimulatorStep struct{}
+type BuildForSimulatorStep struct {
+	pathProvider   v2pathutil.PathProvider
+	pathChecker    v2pathutil.PathChecker
+	pathModifier   v2pathutil.PathModifier
+	fileManager    fileutil.FileManager
+	XCConfigWriter xcconfig.Writer
+}
 
 // NewBuildForSimulatorStep ...
-func NewBuildForSimulatorStep() BuildForSimulatorStep {
-	return BuildForSimulatorStep{}
+func NewBuildForSimulatorStep(pathProvider v2pathutil.PathProvider, pathChecker v2pathutil.PathChecker, pathModifier v2pathutil.PathModifier, fileManager fileutil.FileManager) BuildForSimulatorStep {
+	xcconfigWriter := xcconfig.NewWriter(pathProvider, fileManager, pathChecker, pathModifier)
+	return BuildForSimulatorStep{
+		pathProvider:   pathProvider,
+		pathChecker:    pathChecker,
+		pathModifier:   pathModifier,
+		fileManager:    fileManager,
+		XCConfigWriter: xcconfigWriter,
+	}
 }
 
 // ProcessConfig ...
 func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
-	var cfg Config
-	if err := stepconf.Parse(&cfg); err != nil {
+	var config Config
+	if err := stepconf.Parse(&config); err != nil {
 		return RunOpts{}, fmt.Errorf("unable to parse input: %s", err)
 	}
 
-	log.SetEnableDebugLog(cfg.VerboseLog)
-	stepconf.Print(cfg)
+	log.SetEnableDebugLog(config.VerboseLog)
+	stepconf.Print(config)
 
-	destinationSpecifier, err := destination.NewSpecifier(cfg.Destination)
+	destinationSpecifier, err := destination.NewSpecifier(config.Destination)
 	if err != nil {
-		return RunOpts{}, fmt.Errorf("invalid destination (%s): %w", cfg.Destination, err)
+		return RunOpts{}, fmt.Errorf("invalid input `destination` (%s): %w", config.Destination, err)
 	}
 
 	platform, isGeneric := destinationSpecifier.Platform()
 	if !isGeneric {
-		return RunOpts{}, fmt.Errorf("destination (%s) is not a generic destination, key 'generic/platform' expected", cfg.Destination)
+		return RunOpts{}, fmt.Errorf("input `destination` (%s) is not a generic destination, key 'generic/platform' expected", config.Destination)
+	}
+
+	additionalOptions, err := shellquote.Split(config.XcodebuildAdditionalOptions)
+	if err != nil {
+		return RunOpts{}, fmt.Errorf("provided `xcodebuild_options` (%s) are not valid CLI parameters: %s", config.XcodebuildAdditionalOptions, err)
+	}
+
+	if strings.TrimSpace(config.XCConfigContent) == "" {
+		config.XCConfigContent = ""
+	}
+	if sliceutil.IsStringInSlice("-xcconfig", additionalOptions) &&
+		config.XCConfigContent != "" {
+		return RunOpts{}, fmt.Errorf("`-xcconfig` option found in `xcodebuild_options`, please clear `xcconfig_content` input as can not set both")
 	}
 
 	return RunOpts{
-		ProjectPath:         cfg.ProjectPath,
-		Scheme:              cfg.Scheme,
-		Destination:         cfg.Destination,
+		ProjectPath:         config.ProjectPath,
+		Scheme:              config.Scheme,
+		Destination:         config.Destination,
 		DestinationPlatform: platform,
 
-		Configuration: cfg.Configuration,
-		// XCConfigContent:
-		PerformCleanAction:          cfg.PerformCleanAction,
-		XcodebuildAdditionalOptions: cfg.XcodebuildAdditionalOptions,
-		LogFormatter:                cfg.LogFormatter,
+		Configuration:               config.Configuration,
+		XCConfigContent:             config.XCConfigContent,
+		PerformCleanAction:          config.PerformCleanAction,
+		XcodebuildAdditionalOptions: additionalOptions,
+		LogFormatter:                config.LogFormatter,
 
-		CacheLevel: cfg.CacheLevel,
-
-		DisableIndexWhileBuilding: true,
-		CodeSigningAllowed:        false,
+		CacheLevel: config.CacheLevel,
 	}, nil
 }
 
@@ -182,7 +205,7 @@ func (b BuildForSimulatorStep) InstallDependencies(cfg RunOpts) (RunOpts, error)
 }
 
 // Run ...
-func (b BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
+func (s BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
 	// Detect Xcode major version
 	xcodebuildVersion, err := utility.GetXcodeVersion()
 	if err != nil {
@@ -267,25 +290,15 @@ func (b BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
 		xcodeBuildCmd := xcodebuild.NewCommandBuilder(absProjectPath, actions...)
 		xcodeBuildCmd.SetScheme(cfg.Scheme)
 		xcodeBuildCmd.SetConfiguration(conf)
-
-		// Set simulator destination and disable code signing for the build
 		xcodeBuildCmd.SetDestination(cfg.Destination)
-
-		options, err := shellquote.Split(cfg.XcodebuildAdditionalOptions)
-		if err != nil {
-			return ExportOptions{}, fmt.Errorf("failed to shell split XcodebuildOptions (%s), error: %s", cfg.XcodebuildAdditionalOptions, err)
+		xcodeBuildCmd.SetCustomOptions(cfg.XcodebuildAdditionalOptions)
+		if cfg.XCConfigContent != "" {
+			xcconfigPath, err := s.XCConfigWriter.Write(cfg.XCConfigContent)
+			if err != nil {
+				return ExportOptions{}, fmt.Errorf("failed to write xcconfig file contents: %w", err)
+			}
+			xcodeBuildCmd.SetXCConfigPath(xcconfigPath)
 		}
-		// Disable indexing while building
-		if cfg.DisableIndexWhileBuilding {
-			options = append(options, "COMPILER_INDEX_STORE_ENABLE=NO")
-		}
-		// Explicitly specify if code signing is allowed
-		if cfg.CodeSigningAllowed {
-			options = append(options, "CODE_SIGNING_ALLOWED=YES")
-		} else {
-			options = append(options, "CODE_SIGNING_ALLOWED=NO")
-		}
-		xcodeBuildCmd.SetCustomOptions(options)
 
 		var swiftPackagesPath string
 		if xcodeMajorVersion >= 11 {
@@ -325,11 +338,6 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 			return ExportOptions{}, fmt.Errorf("failed to open xcproj - (%s), error: %s", absProjectPath, err)
 		}
 
-		customOptions, err := shellquote.Split(cfg.XcodebuildAdditionalOptions)
-		if err != nil {
-			return ExportOptions{}, fmt.Errorf("failed to shell split XcodebuildOptions (%s), error: %s", cfg.XcodebuildAdditionalOptions, err)
-		}
-
 		// Get the SDK type
 		var simulatorSDK string
 		switch cfg.DestinationPlatform {
@@ -343,8 +351,8 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 			return ExportOptions{}, fmt.Errorf("unsupported destination (%s)", cfg.DestinationPlatform)
 		}
 
-		customOptions = append(customOptions, "-sdk")
-		customOptions = append(customOptions, simulatorSDK)
+		customOptions := cfg.XcodebuildAdditionalOptions
+		customOptions = append(customOptions, "-sdk", simulatorSDK)
 
 		schemeBuildDir, err := buildTargetDirForScheme(proj, absProjectPath, *scheme, conf, customOptions...)
 		if err != nil {
@@ -668,7 +676,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme xcscheme.Scheme, schemeBui
 					// Also check to see if a path exists with the target name
 					wrapperName, err := wrapperNameForScheme(proj, proj.Path, scheme, configuration, customOptions...)
 					if err != nil {
-						return nil, fmt.Errorf("failed to get scheme (%s) build target dir, error: %s", scheme, err)
+						return nil, fmt.Errorf("failed to get Scheme (%s) build target dir, error: %s", scheme.Name, err)
 					}
 					source = filepath.Join(sourceDir, wrapperName)
 
