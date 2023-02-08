@@ -2,6 +2,11 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/errorutil"
@@ -21,10 +26,6 @@ import (
 	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/bitrise-steplib/steps-xcode-build-for-simulator/util"
 	"github.com/kballard/go-shellquote"
-	"os"
-	"path"
-	"path/filepath"
-	"strings"
 )
 
 const (
@@ -115,7 +116,9 @@ func (b BuildForSimulatorStep) InstallDependencies(cfg Config) (Config, error) {
 						log.Warnf("%s failed: %s", err)
 					}
 					log.Warnf("Switching to xcodebuild for output tool")
-					outputTool = "xcodebuild"
+
+					cfg.OutputTool = "xcodebuild"
+					return cfg, nil
 				}
 			}
 		}
@@ -124,10 +127,12 @@ func (b BuildForSimulatorStep) InstallDependencies(cfg Config) (Config, error) {
 	if err != nil {
 		log.Warnf("Failed to determine xcpretty version, error: %s", err)
 		log.Printf("Switching to xcodebuild for output tool")
-		outputTool = "xcodebuild"
-	}
-	log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 
+		cfg.OutputTool = "xcodebuild"
+		return cfg, nil
+	}
+
+	log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 	cfg.OutputTool = outputTool
 	return cfg, nil
 }
