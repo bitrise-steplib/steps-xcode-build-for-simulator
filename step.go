@@ -35,9 +35,9 @@ type simulatorSDK string
 
 const (
 	minSupportedXcodeMajorVersion              = 11
-	iOSSimName                    simulatorSDK = "iphonesimulator"
-	tvOSSimName                   simulatorSDK = "appletvsimulator"
-	watchOSSimName                simulatorSDK = "watchsimulator"
+	iOSSimSDK                     simulatorSDK = "iphonesimulator"
+	tvOSSimSDK                    simulatorSDK = "appletvsimulator"
+	watchOSSimSDK                 simulatorSDK = "watchsimulator"
 )
 
 const (
@@ -127,11 +127,11 @@ func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 	var simulatorSDK simulatorSDK
 	switch platform {
 	case destination.IOSSimulator:
-		simulatorSDK = iOSSimName
+		simulatorSDK = iOSSimSDK
 	case destination.TvOSSimulator:
-		simulatorSDK = tvOSSimName
+		simulatorSDK = tvOSSimSDK
 	case destination.WatchOSSimulator:
-		simulatorSDK = watchOSSimName
+		simulatorSDK = watchOSSimSDK
 	default:
 		return RunOpts{}, fmt.Errorf("unsupported destination (%s); iOS, tvOS or watchOS Simulator expected", platform)
 	}
@@ -613,7 +613,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme xcscheme.Scheme, schemeBui
 			log.Debugf("sdkRoot: %s", sdkRoot)
 
 			if strings.Contains(sdkRoot, "WatchOS.platform") {
-				simulatorSDK = watchOSSimName
+				simulatorSDK = watchOSSimSDK
 			}
 		}
 
