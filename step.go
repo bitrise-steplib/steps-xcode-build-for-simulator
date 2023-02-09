@@ -31,11 +31,13 @@ import (
 	"github.com/kballard/go-shellquote"
 )
 
+type simulatorSDK string
+
 const (
-	minSupportedXcodeMajorVersion = 11
-	iOSSimName                    = "iphonesimulator"
-	tvOSSimName                   = "appletvsimulator"
-	watchOSSimName                = "watchsimulator"
+	minSupportedXcodeMajorVersion              = 11
+	iOSSimName                    simulatorSDK = "iphonesimulator"
+	tvOSSimName                   simulatorSDK = "appletvsimulator"
+	watchOSSimName                simulatorSDK = "watchsimulator"
 )
 
 const (
@@ -65,10 +67,10 @@ type Config struct {
 }
 
 type RunOpts struct {
-	ProjectPath         string
-	Scheme              string
-	Destination         string
-	DestinationPlatform destination.Platform
+	ProjectPath  string
+	Scheme       string
+	Destination  string
+	SimulatorSDK simulatorSDK
 
 	Configuration               string
 	XCConfigContent             string
@@ -119,7 +121,19 @@ func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 
 	platform, isGeneric := destinationSpecifier.Platform()
 	if !isGeneric {
-		return RunOpts{}, fmt.Errorf("input `destination` (%s) is not a generic destination, key 'generic/platform' expected", config.Destination)
+		log.Warnf("input `destination` (%s) is not a generic destination, key 'generic/platform' preferred", config.Destination)
+	}
+
+	var simulatorSDK simulatorSDK
+	switch platform {
+	case destination.IOSSimulator:
+		simulatorSDK = iOSSimName
+	case destination.TvOSSimulator:
+		simulatorSDK = tvOSSimName
+	case destination.WatchOSSimulator:
+		simulatorSDK = watchOSSimName
+	default:
+		return RunOpts{}, fmt.Errorf("unsupported destination (%s); iOS, tvOS or watchOS Simulator expected", platform)
 	}
 
 	additionalOptions, err := shellquote.Split(config.XcodebuildAdditionalOptions)
@@ -136,10 +150,10 @@ func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 	}
 
 	return RunOpts{
-		ProjectPath:         config.ProjectPath,
-		Scheme:              config.Scheme,
-		Destination:         config.Destination,
-		DestinationPlatform: platform,
+		ProjectPath:  config.ProjectPath,
+		Scheme:       config.Scheme,
+		Destination:  config.Destination,
+		SimulatorSDK: simulatorSDK,
 
 		Configuration:               config.Configuration,
 		XCConfigContent:             config.XCConfigContent,
@@ -340,21 +354,8 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 			return ExportOptions{}, fmt.Errorf("failed to open xcproj - (%s), error: %s", absProjectPath, err)
 		}
 
-		// Get the SDK type
-		var simulatorSDK string
-		switch cfg.DestinationPlatform {
-		case destination.IOSSimulator:
-			simulatorSDK = iOSSimName
-		case destination.TvOSSimulator:
-			simulatorSDK = tvOSSimName
-		case destination.WatchOSSimulator:
-			simulatorSDK = watchOSSimName
-		default:
-			return ExportOptions{}, fmt.Errorf("unsupported destination (%s)", cfg.DestinationPlatform)
-		}
-
 		customOptions := cfg.XcodebuildAdditionalOptions
-		customOptions = append(customOptions, "-sdk", simulatorSDK)
+		customOptions = append(customOptions, "-sdk", string(cfg.SimulatorSDK))
 
 		schemeBuildDir, err := buildTargetDirForScheme(proj, absProjectPath, *scheme, conf, customOptions...)
 		if err != nil {
@@ -364,7 +365,7 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 		log.Debugf("Scheme build dir: %s", schemeBuildDir)
 
 		// Export the artifact from the build dir to the output_dir
-		if exportedArtifacts, err = exportArtifacts(proj, *scheme, schemeBuildDir, conf, simulatorSDK, absOutputDir); err != nil {
+		if exportedArtifacts, err = exportArtifacts(proj, *scheme, schemeBuildDir, conf, cfg.SimulatorSDK, absOutputDir); err != nil {
 			return ExportOptions{}, fmt.Errorf("failed to export the artifacts, error: %s", err)
 		}
 	}
@@ -565,7 +566,7 @@ func wrapperNameForScheme(proj xcodeproj.XcodeProj, projectPath string, scheme x
 }
 
 // exportArtifacts exports the main target and it's .app dependencies.
-func exportArtifacts(proj xcodeproj.XcodeProj, scheme xcscheme.Scheme, schemeBuildDir, configuration, simulatorSDK, deployDir string, customOptions ...string) ([]string, error) {
+func exportArtifacts(proj xcodeproj.XcodeProj, scheme xcscheme.Scheme, schemeBuildDir, configuration string, simulatorSDK simulatorSDK, deployDir string, customOptions ...string) ([]string, error) {
 	var exportedArtifacts []string
 	splitSchemeDir := strings.Split(schemeBuildDir, "Build/")
 	var schemeDir string
@@ -618,7 +619,7 @@ func exportArtifacts(proj xcodeproj.XcodeProj, scheme xcscheme.Scheme, schemeBui
 
 		//
 		// Find the TARGET_BUILD_DIR for the target
-		options := []string{"-sdk", simulatorSDK}
+		options := []string{"-sdk", string(simulatorSDK)}
 		var targetDir string
 		{
 			if sliceutil.IsStringInSlice("-sdk", customOptions) {
