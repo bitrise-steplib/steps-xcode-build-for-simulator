@@ -39,7 +39,8 @@ const (
 )
 
 const (
-	bitriseXcodeRawResultTextEnvKey = "BITRISE_XCODE_RAW_RESULT_TEXT_PATH"
+	xcodebuilgLogFileName      = "xcodebuild_build.log"
+	bitriseXcodebuildLogEnvKey = "BITRISE_XCODEBUILD_BUILD_FOR_SIMULATOR_LOG_PATH"
 )
 
 type Config struct {
@@ -238,7 +239,7 @@ func (s BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
 	}
 
 	// Output files
-	rawXcodebuildOutputLogPath := filepath.Join(absOutputDir, "raw-xcodebuild-output.log")
+	rawXcodebuildOutputLogPath := filepath.Join(absOutputDir, xcodebuilgLogFileName)
 
 	//
 	// Cleanup
@@ -315,12 +316,12 @@ func (s BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
 				log.Errorf("\nLast lines of the Xcode's build log:")
 				fmt.Println(stringutil.LastNLines(rawXcodeBuildOut, 10))
 
-				if err := output.ExportOutputFileContent(rawXcodeBuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
-					log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
+				if err := output.ExportOutputFileContent(rawXcodeBuildOut, rawXcodebuildOutputLogPath, bitriseXcodebuildLogEnvKey); err != nil {
+					log.Warnf("Failed to export %s, error: %s", bitriseXcodebuildLogEnvKey, err)
 				} else {
-					log.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log is also available in the raw-xcodebuild-output.log
-The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable
-(value: %s)`, rawXcodebuildOutputLogPath)
+					log.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log is also available in the %s.ß
+The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in the %s environment variable
+(value: %s)`, xcodebuilgLogFileName, bitriseXcodebuildLogEnvKey, rawXcodebuildOutputLogPath)
 				}
 			}
 			return ExportOptions{}, fmt.Errorf("build failed, error: %s", err)
