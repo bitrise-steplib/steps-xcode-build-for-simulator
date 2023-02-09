@@ -17,7 +17,6 @@ import (
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	v2pathutil "github.com/bitrise-io/go-utils/v2/pathutil"
-	"github.com/bitrise-io/go-xcode/utility"
 	"github.com/bitrise-io/go-xcode/v2/destination"
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
@@ -34,10 +33,9 @@ import (
 type simulatorSDK string
 
 const (
-	minSupportedXcodeMajorVersion              = 11
-	iOSSimSDK                     simulatorSDK = "iphonesimulator"
-	tvOSSimSDK                    simulatorSDK = "appletvsimulator"
-	watchOSSimSDK                 simulatorSDK = "watchsimulator"
+	iOSSimSDK     simulatorSDK = "iphonesimulator"
+	tvOSSimSDK    simulatorSDK = "appletvsimulator"
+	watchOSSimSDK simulatorSDK = "watchsimulator"
 )
 
 const (
@@ -225,19 +223,6 @@ func (b BuildForSimulatorStep) InstallDependencies(cfg RunOpts) (RunOpts, error)
 
 // Run ...
 func (s BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
-	// Detect Xcode major version
-	xcodebuildVersion, err := utility.GetXcodeVersion()
-	if err != nil {
-		return ExportOptions{}, fmt.Errorf("failed to determine xcode version: %s", err)
-	}
-	log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.Version, xcodebuildVersion.BuildVersion)
-	fmt.Println()
-
-	xcodeMajorVersion := xcodebuildVersion.MajorVersion
-	if xcodeMajorVersion < minSupportedXcodeMajorVersion {
-		return ExportOptions{}, fmt.Errorf("invalid Xcode major version (%d), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
-	}
-
 	// ABS out dir pth
 	absOutputDir, err := s.pathModifier.AbsPath(cfg.OutputDir)
 	if err != nil {
