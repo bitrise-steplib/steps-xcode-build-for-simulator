@@ -232,4 +232,3 @@ outputs:
       The file path of the raw `xcodebuild build` command log. The log is placed into the `Output directory path`.
 
       Only set if `log_formatter` is set to `xcpretty`.
-
