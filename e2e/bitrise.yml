@@ -1,6 +1,10 @@
 format_version: "11"
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
+app:
+  envs:
+  - ORIG_BITRISE_SOURCE_DIR: $BITRISE_SOURCE_DIR
+
 workflows:
   test_objc:
     envs:
@@ -9,12 +13,11 @@ workflows:
     - BRANCH: master
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
-    - OUTPUT_TOOL: xcodebuild
-    - SIMULATOR_OS_VERSION: latest
+    - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
+    - LOG_FORMATTER: xcodebuild
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/ios-simple-objc.app
-    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -25,12 +28,11 @@ workflows:
     - BRANCH: master
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
-    - SIMULATOR_OS_VERSION: latest
-    - OUTPUT_TOOL: xcpretty
+    - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
+    - LOG_FORMATTER: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/code-sign-test.app
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/code-sign-test.app|$BITRISE_DEPLOY_DIR/watchkit-app.app
-    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -41,12 +43,11 @@ workflows:
     - BRANCH: master
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-    - SIMULATOR_OS_VERSION: latest
-    - OUTPUT_TOOL: xcpretty
+    - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
+    - LOG_FORMATTER: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app
-    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -57,12 +58,11 @@ workflows:
     - BRANCH: scheme-in-workspace
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift-workspace
-    - SIMULATOR_OS_VERSION: latest
-    - OUTPUT_TOOL: xcpretty
+    - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
+    - LOG_FORMATTER: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app
-    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -73,12 +73,11 @@ workflows:
     - BRANCH: watch
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-    - SIMULATOR_OS_VERSION: latest
-    - OUTPUT_TOOL: xcodebuild
+    - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
+    - LOG_FORMATTER: xcodebuild
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app
-    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -89,12 +88,11 @@ workflows:
     - BRANCH: watch
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-    - SIMULATOR_OS_VERSION: latest
-    - OUTPUT_TOOL: xcpretty
+    - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
+    - LOG_FORMATTER: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app
-    - CODE_SIGNING_ALLOWED: "no"
     after_run:
     - _common
 
@@ -105,12 +103,11 @@ workflows:
     - BRANCH: watch
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-    - SIMULATOR_OS_VERSION: latest
-    - OUTPUT_TOOL: xcpretty
+    - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=YES
+    - LOG_FORMATTER: xcpretty
     - OUTPUT_DIR: $BITRISE_DEPLOY_DIR
     - BITRISE_APP_DIR_PATH_EXPECTED: $BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app
     - BITRISE_APP_DIR_PATH_LIST_EXPECTED: $BITRISE_DEPLOY_DIR/sample-apps-ios-workspace-swift.app|$BITRISE_DEPLOY_DIR/bitfall.sample-apps-ios-workspace-swift-watch.app
-    - CODE_SIGNING_ALLOWED: "yes"
     after_run:
     - _common
 
@@ -167,13 +164,10 @@ workflows:
     - path::./:
         title: Execute step
         inputs:
-        - simulator_os_version: $SIMULATOR_OS_VERSION
-        - output_tool: $OUTPUT_TOOL
-          opts:
-            is_expand: true
+        - xcconfig_content: $XCCONFIG_CONTENT
         - xcodebuild_options: $XCODEBUILD_OPTIONS
+        - log_formatter: $LOG_FORMATTER
         - verbose_log: "yes"
-        - code_signing_allowed: $CODE_SIGNING_ALLOWED
     - script:
         title: Output check
         inputs:

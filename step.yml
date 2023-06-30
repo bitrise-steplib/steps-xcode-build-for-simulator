@@ -54,14 +54,13 @@ inputs:
 - project_path: $BITRISE_PROJECT_PATH
   opts:
     title: Project path
-    summary: Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`) path.
+    summary: Path of the Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`)
     description: |-
-      Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`) path.
-
-      _xcodebuild steps:_
+      Path of the Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`)
 
       The input value sets xcodebuild's `-project` or `-workspace` option.
     is_required: true
+
 - scheme: $BITRISE_SCHEME
   opts:
     title: Scheme
@@ -69,86 +68,122 @@ inputs:
     description: |-
       Xcode Scheme name.
 
-      _xcodebuild steps:_
-
       The input value sets xcodebuild's `-scheme` option.
     is_required: true
-- simulator_device: iPhone 8 Plus
+
+- destination: generic/platform=iOS Simulator
   opts:
-    title: Device Model
-    summary: The simulated device to use when building
+    title: Device destination specifier
+    summary: Destination specifier describes the device to use as a destination.
     description: |-
-      Set this exactly as it appears in the device selection menu in Xcode's device selection UI.
+      Destination specifier describes the device to use as a destination.
 
-      A couple of examples (the actual available options depend on which versions are installed):
-
-      * iPhone 8 Plus
-      * iPhone Xs Max
-      * iPad Air (3rd generation)
-      * iPad Pro (12.9-inch) (3rd generation)
-      * Apple TV 4K
-
-      Don't forget to set the platform to `tvOS Simulator` in order to use an Apple TV simulator.
+      The input value sets xcodebuild's `-destination` option.
     is_required: true
-- simulator_os_version: latest
-  opts:
-    title: OS Version
-    summary: The OS version to build for
-    description: |-
-      Set this exactly as it appears in Xcode's device selection UI.
-
-      A couple of format examples (the actual available options depend on which versions are installed):
-
-      * "8.4"
-      * latest
-    is_required: true
-- simulator_platform: iOS
-  opts:
-    title: Platform
-    summary: The platform to build for (iOS or tvOS)
-    description: |-
-      Set this exactly as it appears in Xcode's device selection UI.
-
-      A couple of examples (the actual available options depend on which versions are installed):
-
-      * iOS Simulator
-      * tvOS Simulator
     value_options:
-    - iOS
-    - tvOS
-    is_required: true
+    - generic/platform=iOS Simulator
+    - generic/platform=watchOS Simulator
+    - generic/platform=tvOS Simulator
+
+- xcconfig_content: |-
+    CODE_SIGNING_ALLOWED=NO
+    COMPILER_INDEX_STORE_ENABLE = NO
+  opts:
+    title: Build settings (xcconfig), allow code signing
+    summary: Build settings to override the project's build settings, using xcodebuild's `-xcconfig` option.
+    description: |-
+      Build settings to override the project's build settings, using xcodebuild's `-xcconfig` option.
+
+      *Code signing allowed: Whether or not to allow code signing for this build*
+      When building an app for the simulator, code signing is not required and is set to "no" by default.
+      On rare occasions, you may need to set the flag to "yes" — usually when working with certain test cases or third-party dependencies.
+
+      You can't define `-xcconfig` option in `Additional options for the xcodebuild command` if this input is set.
+
+      If empty, no setting is changed. When set it can be either:
+      1.  Existing `.xcconfig` file path.
+
+          Example:
+
+          `./ios-sample/ios-sample/Configurations/Dev.xcconfig`
+
+      2.  The contents of a newly created temporary `.xcconfig` file. (This is the default.)
+
+          Build settings must be separated by newline character (`\n`).
+
+          Example:
+          ```
+          COMPILER_INDEX_STORE_ENABLE = NO
+          ONLY_ACTIVE_ARCH[config=Debug][sdk=*][arch=*] = YES
+          ```
+
 - configuration:
   opts:
-    title: Configuration name
-    summary: The name of the Xcode Configuration to use when building
+    category: xcodebuild configuration
+    title: Build Configuration
+    summary: Xcode Build Configuration.
     description: |-
-      (Optional) The name of the Xcode Configuration to use (Debug, Release, etc.). By default your Scheme's archive action defines which Configuration should be used, but this can be overridden it with this option.
+      Xcode Build Configuration.
+
+      If not specified, the default Build Configuration will be used. (Defined in the Scheme's archive action )
+
+      The input value sets xcodebuild's `-configuration` option.
 
       **If the Configuration specified in this input does not exist in your project, the Step will silently ignore the value, and fall back to using the Configuration specified in the Scheme.**
-- disable_index_while_building: "yes"
-  opts:
-    title: Disable indexing during the build
-    summary: This may speed up builds by skipping indexing while building.
-    description: |-
-      When this input is enabled, `COMPILER_INDEX_STORE_ENABLE=NO` is added to the `xcodebuild` command, which disables indexing while building. Disabling this could speed up your builds by eliminating a (normally) unnecessary step.
 
-      Indexing is useful for certain editor features — like autocompletion, jump to definition, and code information lookup — but these features are generally not necessary in a CI environment.
+- perform_clean_action: "no"
+  opts:
+    category: xcodebuild configuration
+    title: Perform clean action
+    summary: If this input is set, `clean` xcodebuild action will be performed besides the `build` action.
     value_options:
     - "yes"
     - "no"
-- code_signing_allowed: "no"
-  opts:
-    title: Code signing allowed
-    summary: Whether or not to allow code signing for this build
-    description: |-
-      When building an app for the simulator, code signing is not required and is set to "no" by default.
+    is_required: true
 
-      On rare occasions, you may need to set the flag to "yes" — usually when working with certain test cases or third-party dependencies.
+- xcodebuild_options: ""
+  opts:
+    category: xcodebuild configuration
+    title: Additional options for the xcodebuild command
+    summary: Additional options to be added to the executed xcodebuild command.
+    description: |-
+      Additional options to be added to the executed xcodebuild command.
+
+      Prefer using `Build settings (xcconfig)` input for specifying `-xcconfig` option. You can't use both.
+
+- log_formatter: xcpretty
+  opts:
+    category: xcodebuild log formatting
+    title: Log formatter
+    summary: Defines how xcodebuild command's log is formatted.
+    description: |-
+      Defines how xcodebuild command's log is formatted.
+
+      Available options:
+      - `xcpretty`: The xcodebuild command's output will be prettified by xcpretty.
+      - `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.
+
+      The raw xcodebuild log will be exported in all cases.
     value_options:
-    - "yes"
-    - "no"
+    - xcpretty
+    - xcodebuild
+    is_required: true
+
+# Step Output Export configuration
+
+- output_dir: $BITRISE_DEPLOY_DIR
+  opts:
+    category: Step Output Export configuration
+    title: Output directory path
+    summary: This directory will contain the generated artifacts.
+    description: This directory will contain the generated artifacts.
+    is_required: true
+
+# Caching
+
 - cache_level: swift_packages
   opts:
+    category: Caching
     title: Enable collecting cache content
     summary: Defines what cache content should be automatically collected.
     description: |-
@@ -158,60 +193,16 @@ inputs:
 
       - `none`: Disable collecting cache content
       - `swift_packages`: Collect Swift PM packages added to the Xcode project
+    is_required: true
     value_options:
     - none
     - swift_packages
-    is_required: true
-- xcodebuild_options: ""
-  opts:
-    category: Debug
-    title: Additional options for the xcodebuild command
-    summary: Additional options to be added to the executed xcodebuild command.
-    description: Additional options to be added to the executed xcodebuild command.
-- workdir: $BITRISE_SOURCE_DIR
-  opts:
-    category: Debug
-    title: Working directory
-    summary: The working directory of the Step
-    description: The working directory of the Step
-- output_dir: $BITRISE_DEPLOY_DIR
-  opts:
-    category: Debug
-    title: Output directory path
-    summary: This directory will contain the generated artifacts.
-    description: This directory will contain the generated artifacts.
-    is_required: true
-- is_clean_build: "no"
-  opts:
-    category: Debug
-    title: Do a clean Xcode build before the build?
-    summary: Whether or not to do a clean build before building
-    value_options:
-    - "yes"
-    - "no"
-    is_required: true
-- output_tool: xcpretty
-  opts:
-    category: Debug
-    title: Log formatter
-    summary: Defines how xcodebuild command's log is formatted.
-    description: |-
-      Defines how xcodebuild command's log is formatted.
 
-      Available options:
+# Debugging
 
-      - `xcpretty`: The xcodebuild command's output will be prettified by xcpretty.
-      - `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.
-
-      The raw xcodebuild log will be exported in both cases.
-    value_options:
-    - xcpretty
-    - xcodebuild
-    is_required: true
-    is_expand: false
 - verbose_log: "no"
   opts:
-    category: Debug
+    category: Debugging
     title: Enable verbose logging
     summary: If this input is set, the Step will print additional logs for debugging.
     description: If this input is set, the Step will print additional logs for debugging.
@@ -233,11 +224,11 @@ outputs:
       This output will include the main target app's path, plus every dependent target's app path.
 
       The paths are separated by a `|` (pipe) character. (Example: `/deploy109787178/sample-apps-ios-workspace-swift.app|/deploy109787178/bitfall.sample-apps-ios-workspace-swift-watch.app`)
-- BITRISE_XCODE_BUILD_RAW_RESULT_TEXT_PATH:
+- BITRISE_XCODEBUILD_BUILD_FOR_SIMULATOR_LOG_PATH:
   opts:
-    title: Full raw build output filepath
+    title: "`xcodebuild build` command log file path"
     summary: The path to the full build output log
     description: |-
-      This is the path to the raw build results log file.
+      The file path of the raw `xcodebuild build` command log. The log is placed into the `Output directory path`.
 
-      If `output_tool` is set to `xcpretty` and the build fails, this log will contain the build output.
+      Only set if `log_formatter` is set to `xcpretty`.
