@@ -1,14 +1,14 @@
 # github.com/bitrise-io/go-plist v0.0.0-20210301100253-4b1a112ccd10
 ## explicit; go 1.15
 github.com/bitrise-io/go-plist
-# github.com/bitrise-io/go-steputils v1.0.3
+# github.com/bitrise-io/go-steputils v1.0.5
 ## explicit; go 1.15
 github.com/bitrise-io/go-steputils/cache
 github.com/bitrise-io/go-steputils/command/rubycommand
 github.com/bitrise-io/go-steputils/output
 github.com/bitrise-io/go-steputils/stepconf
 github.com/bitrise-io/go-steputils/tools
-# github.com/bitrise-io/go-utils v1.0.3
+# github.com/bitrise-io/go-utils v1.0.9
 ## explicit; go 1.13
 github.com/bitrise-io/go-utils/colorstring
 github.com/bitrise-io/go-utils/command
@@ -30,10 +30,8 @@ github.com/bitrise-io/go-utils/v2/env
 github.com/bitrise-io/go-utils/v2/fileutil
 github.com/bitrise-io/go-utils/v2/log
 github.com/bitrise-io/go-utils/v2/pathutil
-# github.com/bitrise-io/go-xcode v1.0.9
-## explicit; go 1.15
-github.com/bitrise-io/go-xcode/models
-github.com/bitrise-io/go-xcode/utility
+# github.com/bitrise-io/go-xcode v1.0.15
+## explicit; go 1.20
 github.com/bitrise-io/go-xcode/xcodebuild
 github.com/bitrise-io/go-xcode/xcodecache
 github.com/bitrise-io/go-xcode/xcodeproject/serialized
@@ -45,8 +43,6 @@ github.com/bitrise-io/go-xcode/xcpretty
 ## explicit; go 1.16
 github.com/bitrise-io/go-xcode/v2/destination
 github.com/bitrise-io/go-xcode/v2/xcconfig
-# github.com/google/go-cmp v0.5.8
-## explicit; go 1.13
 # github.com/hashicorp/go-cleanhttp v0.5.2
 ## explicit; go 1.13
 github.com/hashicorp/go-cleanhttp
@@ -59,7 +55,10 @@ github.com/hashicorp/go-version
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote
-# golang.org/x/text v0.4.0
+# golang.org/x/text v0.12.0
 ## explicit; go 1.17
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
+# howett.net/plist v1.0.0
+## explicit; go 1.12
+howett.net/plist
