@@ -40,7 +40,7 @@ workflows:
     envs:
     - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - BRANCH: master
+    - BRANCH: deployment_target
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
