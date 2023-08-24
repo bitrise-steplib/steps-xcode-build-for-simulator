@@ -40,7 +40,7 @@ workflows:
     envs:
     - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - BRANCH: deployment_target
+    - BRANCH: master
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
@@ -55,7 +55,7 @@ workflows:
     envs:
     - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - BRANCH: scheme-in-workspace-2
+    - BRANCH: scheme-in-workspace
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift-workspace
     - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
@@ -70,7 +70,7 @@ workflows:
     envs:
     - XCODEBUILD_OPTIONS: -derivedDataPath ./ddata
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - BRANCH: watch-2
+    - BRANCH: watch
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
@@ -85,7 +85,7 @@ workflows:
     envs:
     - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - BRANCH: watch-2
+    - BRANCH: watch
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
@@ -100,7 +100,7 @@ workflows:
     envs:
     - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - BRANCH: watch-2
+    - BRANCH: watch
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=YES
