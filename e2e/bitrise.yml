@@ -40,7 +40,7 @@ workflows:
     envs:
     - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - BRANCH: master
+    - BRANCH: deployment_target
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
@@ -55,7 +55,7 @@ workflows:
     envs:
     - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - BRANCH: scheme-in-workspace
+    - BRANCH: scheme-in-workspace-2
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift-workspace
     - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
@@ -70,7 +70,7 @@ workflows:
     envs:
     - XCODEBUILD_OPTIONS: -derivedDataPath ./ddata
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - BRANCH: watch
+    - BRANCH: watch-2
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
@@ -85,7 +85,7 @@ workflows:
     envs:
     - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - BRANCH: watch
+    - BRANCH: watch-2
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=NO
@@ -100,7 +100,7 @@ workflows:
     envs:
     - XCODEBUILD_OPTIONS:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - BRANCH: watch
+    - BRANCH: watch-2
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - XCONFIG_CONTENT: CODE_SIGNING_ALLOWED=YES
@@ -150,8 +150,8 @@ workflows:
             #!/usr/bin/env bash
             set -e
 
-            if [ -f Podfile.lock ]; then
-              echo "Podfile.lock file found in the root dir. Running pod install."
+            if [ -f Podfile ] && [ ! -f Pods ]; then
+              echo "Podfile found in the root dir, but Pods dir missing. Running pod install."
               pod install
             elif [ -f ios/Podfile.lock ]; then
               echo "Podfile.lock file found in the /ios dir. Running pod install."
