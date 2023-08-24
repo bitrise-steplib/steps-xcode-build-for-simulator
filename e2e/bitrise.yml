@@ -150,8 +150,8 @@ workflows:
             #!/usr/bin/env bash
             set -e
 
-            if [ -f Podfile ] && [ ! -f Pods ]; then
-              echo "Podfile found in the root dir, but Pods dir missing. Running pod install."
+            if [ -f Podfile.lock ]; then
+              echo "Podfile.lock file found in the root dir. Running pod install."
               pod install
             elif [ -f ios/Podfile.lock ]; then
               echo "Podfile.lock file found in the /ios dir. Running pod install."
