@@ -2,18 +2,27 @@ package destination
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 )
+
+// Keep it in sync with https://github.com/bitrise-io/image-build-utils/blob/master/roles/simulators/defaults/main.yml#L14
+const defaultDeviceName = "Bitrise iOS default"
 
 // Device is an available device
 type Device struct {
-	Name   string
 	ID     string
 	Status string
-	OS     string
+	Type   string
+
+	Platform string
+	Name     string
+	OS       string
+	Arch     string
 }
 
 // DeviceFinder is an interface that find a matching device for a given destination
@@ -24,19 +33,21 @@ type DeviceFinder interface {
 type deviceFinder struct {
 	logger         log.Logger
 	commandFactory command.Factory
+	xcodeVersion   xcodeversion.Version
 
 	list *deviceList
 }
 
 // NewDeviceFinder retruns the default implementation of DeviceFinder
-func NewDeviceFinder(log log.Logger, commandFactory command.Factory) DeviceFinder {
+func NewDeviceFinder(log log.Logger, commandFactory command.Factory, xcodeVersion xcodeversion.Version) DeviceFinder {
 	return &deviceFinder{
 		logger:         log,
 		commandFactory: commandFactory,
+		xcodeVersion:   xcodeVersion,
 	}
 }
 
-// GetSimulator returns a Simulator matching the destination
+// FindDevice returns a Simulator matching the destination
 func (d deviceFinder) FindDevice(destination Simulator) (Device, error) {
 	var (
 		device Device
@@ -48,7 +59,7 @@ func (d deviceFinder) FindDevice(destination Simulator) (Device, error) {
 		d.list, err = d.parseDeviceList()
 	}
 	if err == nil {
-		device, err = d.filterDeviceList(destination)
+		device, err = d.deviceForDestination(destination)
 	}
 
 	d.logger.TDebugf("Parsed simulator list in %s", time.Since(start).Round(time.Second))
@@ -75,8 +86,18 @@ func (d deviceFinder) FindDevice(destination Simulator) (Device, error) {
 		d.list, err = d.parseDeviceList()
 	}
 	if err == nil {
-		device, err = d.filterDeviceList(destination)
+		device, err = d.deviceForDestination(destination)
 	}
 
 	return device, err
+}
+
+// XcodebuildDestination returns the required xcodebuild -destination flag value for a device
+func (d Device) XcodebuildDestination() string {
+	// `arch` doesn't seem to work together with `id`
+	if d.Arch == "" {
+		return fmt.Sprintf("id=%s", d.ID)
+	}
+
+	return fmt.Sprintf("platform=%s,name=%s,OS=%s,arch=%s", d.Platform, d.Name, d.OS, d.Arch)
 }
