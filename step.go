@@ -26,14 +26,6 @@ import (
 	"github.com/kballard/go-shellquote"
 )
 
-type simulatorSDK string
-
-const (
-	iOSSimSDK     simulatorSDK = "iphonesimulator"
-	tvOSSimSDK    simulatorSDK = "appletvsimulator"
-	watchOSSimSDK simulatorSDK = "watchsimulator"
-)
-
 const (
 	xcodebuilgLogFileName      = "xcodebuild_build.log"
 	bitriseXcodebuildLogEnvKey = "BITRISE_XCODEBUILD_BUILD_FOR_SIMULATOR_LOG_PATH"
@@ -65,7 +57,6 @@ type RunOpts struct {
 	ProjectPath  string
 	Scheme       string
 	Destination  string
-	SimulatorSDK simulatorSDK
 
 	Configuration               string
 	XCConfigContent             string
@@ -109,28 +100,6 @@ func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 	log.SetEnableDebugLog(config.VerboseLog)
 	stepconf.Print(config)
 
-	destinationSpecifier, err := destination.NewSpecifier(config.Destination)
-	if err != nil {
-		return RunOpts{}, fmt.Errorf("invalid input `destination` (%s): %w", config.Destination, err)
-	}
-
-	platform, isGeneric := destinationSpecifier.Platform()
-	if !isGeneric {
-		log.Warnf("input `destination` (%s) is not a generic destination, key 'generic/platform' preferred", config.Destination)
-	}
-
-	var simulatorSDK simulatorSDK
-	switch platform {
-	case destination.IOSSimulator:
-		simulatorSDK = iOSSimSDK
-	case destination.TvOSSimulator:
-		simulatorSDK = tvOSSimSDK
-	case destination.WatchOSSimulator:
-		simulatorSDK = watchOSSimSDK
-	default:
-		return RunOpts{}, fmt.Errorf("unsupported destination (%s); iOS, tvOS or watchOS Simulator expected", platform)
-	}
-
 	additionalOptions, err := shellquote.Split(config.XcodebuildAdditionalOptions)
 	if err != nil {
 		return RunOpts{}, fmt.Errorf("provided `xcodebuild_options` (%s) are not valid CLI parameters: %s", config.XcodebuildAdditionalOptions, err)
@@ -148,7 +117,6 @@ func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 		ProjectPath:  config.ProjectPath,
 		Scheme:       config.Scheme,
 		Destination:  config.Destination,
-		SimulatorSDK: simulatorSDK,
 
 		Configuration:               config.Configuration,
 		XCConfigContent:             config.XCConfigContent,
@@ -310,12 +278,10 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 		}
 	}
 
-	//
 	// Export artifacts
 	fmt.Println()
-	log.Infof("Copy artifacts from Derived Data to %s", absOutputDir)
+	log.Infof("Copy artifacts to $BITRISE_DEPLOY_DIR")
 
-	// Export the artifact from the build dir to the output_dir
 	exportedArtifacts, err := exportArtifacts(archivePth, absOutputDir)
 	if err != nil {
 		return ExportOptions{}, fmt.Errorf("failed to export the artifacts, error: %s", err)
@@ -327,13 +293,11 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 	}, nil
 }
 
-// ExportOptions ...
 type ExportOptions struct {
 	Artifacts []string
 	OutputDir string
 }
 
-// ExportOutput ...
 func (b BuildForSimulatorStep) ExportOutput(options ExportOptions) error {
 	fmt.Println()
 	log.Infof("Exporting outputs")
