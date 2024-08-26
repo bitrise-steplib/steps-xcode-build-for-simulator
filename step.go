@@ -17,16 +17,20 @@ import (
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	v2pathutil "github.com/bitrise-io/go-utils/v2/pathutil"
+	"github.com/bitrise-io/go-utils/ziputil"
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	cache "github.com/bitrise-io/go-xcode/xcodecache"
 	"github.com/bitrise-io/go-xcode/xcpretty"
-	"github.com/bitrise-steplib/steps-xcode-build-for-simulator/util"
 	"github.com/kballard/go-shellquote"
+
+	"github.com/bitrise-steplib/steps-xcode-build-for-simulator/util"
 )
 
 const (
 	xcodebuilgLogFileName      = "xcodebuild_build.log"
+	bitriseAppDirPathKey       = "BITRISE_APP_DIR_PATH"
+	bitriseAppDirPathListKey   = "BITRISE_APP_DIR_PATH_LIST"
 	bitriseXcodebuildLogEnvKey = "BITRISE_XCODEBUILD_BUILD_FOR_SIMULATOR_LOG_PATH"
 )
 
@@ -68,7 +72,6 @@ type RunOpts struct {
 	CacheLevel string
 }
 
-// BuildForSimulatorStep ...
 type BuildForSimulatorStep struct {
 	pathProvider   v2pathutil.PathProvider
 	pathChecker    v2pathutil.PathChecker
@@ -77,7 +80,6 @@ type BuildForSimulatorStep struct {
 	XCConfigWriter xcconfig.Writer
 }
 
-// NewBuildForSimulatorStep ...
 func NewBuildForSimulatorStep(pathProvider v2pathutil.PathProvider, pathChecker v2pathutil.PathChecker, pathModifier v2pathutil.PathModifier, fileManager fileutil.FileManager) BuildForSimulatorStep {
 	xcconfigWriter := xcconfig.NewWriter(pathProvider, fileManager, pathChecker, pathModifier)
 	return BuildForSimulatorStep{
@@ -89,7 +91,6 @@ func NewBuildForSimulatorStep(pathProvider v2pathutil.PathProvider, pathChecker 
 	}
 }
 
-// ProcessConfig ...
 func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 	var config Config
 	if err := stepconf.Parse(&config); err != nil {
@@ -129,7 +130,6 @@ func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 	}, nil
 }
 
-// InstallDependencies ...
 func (b BuildForSimulatorStep) InstallDependencies(cfg RunOpts) (RunOpts, error) {
 	if cfg.LogFormatter != "xcpretty" {
 		return cfg, nil
@@ -185,7 +185,6 @@ func (b BuildForSimulatorStep) InstallDependencies(cfg RunOpts) (RunOpts, error)
 	return cfg, nil
 }
 
-// Run ...
 func (s BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
 	// ABS out dir pth
 	absOutputDir, err := s.pathModifier.AbsPath(cfg.OutputDir)
@@ -281,7 +280,7 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 	fmt.Println()
 	log.Infof("Copy artifacts to $BITRISE_DEPLOY_DIR")
 
-	exportedArtifacts, err := exportArtifacts(archivePth, absOutputDir)
+	exportedArtifacts, err := copyArtifactsToDeployDir(archivePth, absOutputDir)
 	if err != nil {
 		return ExportOptions{}, fmt.Errorf("export artifacts: %s", err)
 	}
@@ -301,15 +300,15 @@ func (b BuildForSimulatorStep) ExportOutput(options ExportOptions) error {
 	fmt.Println()
 	log.Infof("Exporting outputs")
 	if len(options.Artifacts) == 0 {
-		log.Warnf("No exportable artifact have found.")
+		log.Warnf("No exportable artifact found.")
 	} else {
 		mainTargetAppPath, pathMap, err := exportOutput(options.Artifacts)
 		if err != nil {
-			return fmt.Errorf("failed to export outputs (BITRISE_APP_DIR_PATH & BITRISE_APP_DIR_PATH_LIST), error: %s", err)
+			return fmt.Errorf("failed to export outputs (%s & %s), error: %s", bitriseAppDirPathKey, bitriseAppDirPathListKey, err)
 		}
 
-		log.Donef("BITRISE_APP_DIR_PATH -> %s", mainTargetAppPath)
-		log.Donef("BITRISE_APP_DIR_PATH_LIST -> %s", pathMap)
+		log.Donef("%s -> %s", bitriseAppDirPathKey, mainTargetAppPath)
+		log.Donef("%s -> %s", bitriseAppDirPathListKey, pathMap)
 
 		fmt.Println()
 		log.Donef("You can find the exported artifacts in: %s", options.OutputDir)
@@ -320,22 +319,22 @@ func (b BuildForSimulatorStep) ExportOutput(options ExportOptions) error {
 // Ancillary Methods
 
 func exportOutput(artifacts []string) (string, string, error) {
-	if err := tools.ExportEnvironmentWithEnvman("BITRISE_APP_DIR_PATH", artifacts[0]); err != nil {
+	mainAppArtifact := artifacts[0]
+	if err := tools.ExportEnvironmentWithEnvman(bitriseAppDirPathKey, mainAppArtifact); err != nil {
 		return "", "", err
 	}
 
 	pathMap := strings.Join(artifacts, "|")
 	pathMap = strings.Trim(pathMap, "|")
 
-	if err := tools.ExportEnvironmentWithEnvman("BITRISE_APP_DIR_PATH_LIST", pathMap); err != nil {
+	if err := tools.ExportEnvironmentWithEnvman(bitriseAppDirPathListKey, pathMap); err != nil {
 		return "", "", err
 	}
 	return artifacts[0], pathMap, nil
 }
 
-// exportArtifacts exports the main target and it's .app dependencies.
-func exportArtifacts(archivePath string, deployDir string) ([]string, error) {
-	var exportedArtifacts []string
+func copyArtifactsToDeployDir(archivePath string, deployDir string) ([]string, error) {
+	var copiedArtifacts []string
 
 	if err := filepath.WalkDir(archivePath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -353,8 +352,15 @@ func exportArtifacts(archivePath string, deployDir string) ([]string, error) {
 				log.Debugf("failed to copy the generated app from (%s) to the Deploy dir", path)
 				return err
 			}
+			log.Donef("Copy: $BITRISE_DEPLOY_DIR/%s", d.Name())
 
-			exportedArtifacts = append(exportedArtifacts, destination)
+			copiedArtifacts = append(copiedArtifacts, destination)
+			
+			err = ziputil.ZipDir(destination, destination+".zip", false)
+			if err != nil {
+				log.Errorf("Failed to zip %s: %s", destination, err)
+			}
+			log.Donef("Zip: $BITRISE_DEPLOY_DIR/%s.zip", d.Name())
 		}
 
 		return nil
@@ -362,11 +368,11 @@ func exportArtifacts(archivePath string, deployDir string) ([]string, error) {
 		return nil, fmt.Errorf("failed to walk through the archive path: %s", err)
 	}
 
-	if len(exportedArtifacts) != 0 {
+	if len(copiedArtifacts) != 0 {
 		log.Debugf("Success\n")
 	} else {
-		return nil, fmt.Errorf("failed to copy the generated app to the Deploy dir")
+		return nil, fmt.Errorf("didn't find any app artifacts")
 	}
 
-	return exportedArtifacts, nil
+	return copiedArtifacts, nil
 }
