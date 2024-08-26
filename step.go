@@ -311,7 +311,6 @@ func (b BuildForSimulatorStep) ExportOutput(options ExportOptions) error {
 		log.Donef("%s -> %s", bitriseAppDirPathListKey, pathMap)
 
 		fmt.Println()
-		log.Donef("You can find the exported artifacts in: %s", options.OutputDir)
 	}
 	return nil
 }
