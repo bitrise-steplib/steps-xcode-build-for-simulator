@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -17,29 +17,20 @@ import (
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	v2pathutil "github.com/bitrise-io/go-utils/v2/pathutil"
-	"github.com/bitrise-io/go-xcode/v2/destination"
+	"github.com/bitrise-io/go-utils/ziputil"
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	cache "github.com/bitrise-io/go-xcode/xcodecache"
-	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
-	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
-	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
-	"github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace"
 	"github.com/bitrise-io/go-xcode/xcpretty"
-	"github.com/bitrise-steplib/steps-xcode-build-for-simulator/util"
 	"github.com/kballard/go-shellquote"
-)
 
-type simulatorSDK string
-
-const (
-	iOSSimSDK     simulatorSDK = "iphonesimulator"
-	tvOSSimSDK    simulatorSDK = "appletvsimulator"
-	watchOSSimSDK simulatorSDK = "watchsimulator"
+	"github.com/bitrise-steplib/steps-xcode-build-for-simulator/util"
 )
 
 const (
 	xcodebuilgLogFileName      = "xcodebuild_build.log"
+	bitriseAppDirPathKey       = "BITRISE_APP_DIR_PATH"
+	bitriseAppDirPathListKey   = "BITRISE_APP_DIR_PATH_LIST"
 	bitriseXcodebuildLogEnvKey = "BITRISE_XCODEBUILD_BUILD_FOR_SIMULATOR_LOG_PATH"
 )
 
@@ -66,10 +57,9 @@ type Config struct {
 }
 
 type RunOpts struct {
-	ProjectPath  string
-	Scheme       string
-	Destination  string
-	SimulatorSDK simulatorSDK
+	ProjectPath string
+	Scheme      string
+	Destination string
 
 	Configuration               string
 	XCConfigContent             string
@@ -82,7 +72,6 @@ type RunOpts struct {
 	CacheLevel string
 }
 
-// BuildForSimulatorStep ...
 type BuildForSimulatorStep struct {
 	pathProvider   v2pathutil.PathProvider
 	pathChecker    v2pathutil.PathChecker
@@ -91,7 +80,6 @@ type BuildForSimulatorStep struct {
 	XCConfigWriter xcconfig.Writer
 }
 
-// NewBuildForSimulatorStep ...
 func NewBuildForSimulatorStep(pathProvider v2pathutil.PathProvider, pathChecker v2pathutil.PathChecker, pathModifier v2pathutil.PathModifier, fileManager fileutil.FileManager) BuildForSimulatorStep {
 	xcconfigWriter := xcconfig.NewWriter(pathProvider, fileManager, pathChecker, pathModifier)
 	return BuildForSimulatorStep{
@@ -103,7 +91,6 @@ func NewBuildForSimulatorStep(pathProvider v2pathutil.PathProvider, pathChecker 
 	}
 }
 
-// ProcessConfig ...
 func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 	var config Config
 	if err := stepconf.Parse(&config); err != nil {
@@ -112,28 +99,6 @@ func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 
 	log.SetEnableDebugLog(config.VerboseLog)
 	stepconf.Print(config)
-
-	destinationSpecifier, err := destination.NewSpecifier(config.Destination)
-	if err != nil {
-		return RunOpts{}, fmt.Errorf("invalid input `destination` (%s): %w", config.Destination, err)
-	}
-
-	platform, isGeneric := destinationSpecifier.Platform()
-	if !isGeneric {
-		log.Warnf("input `destination` (%s) is not a generic destination, key 'generic/platform' preferred", config.Destination)
-	}
-
-	var simulatorSDK simulatorSDK
-	switch platform {
-	case destination.IOSSimulator:
-		simulatorSDK = iOSSimSDK
-	case destination.TvOSSimulator:
-		simulatorSDK = tvOSSimSDK
-	case destination.WatchOSSimulator:
-		simulatorSDK = watchOSSimSDK
-	default:
-		return RunOpts{}, fmt.Errorf("unsupported destination (%s); iOS, tvOS or watchOS Simulator expected", platform)
-	}
 
 	additionalOptions, err := shellquote.Split(config.XcodebuildAdditionalOptions)
 	if err != nil {
@@ -149,10 +114,9 @@ func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 	}
 
 	return RunOpts{
-		ProjectPath:  config.ProjectPath,
-		Scheme:       config.Scheme,
-		Destination:  config.Destination,
-		SimulatorSDK: simulatorSDK,
+		ProjectPath: config.ProjectPath,
+		Scheme:      config.Scheme,
+		Destination: config.Destination,
 
 		Configuration:               config.Configuration,
 		XCConfigContent:             config.XCConfigContent,
@@ -166,7 +130,6 @@ func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 	}, nil
 }
 
-// InstallDependencies ...
 func (b BuildForSimulatorStep) InstallDependencies(cfg RunOpts) (RunOpts, error) {
 	if cfg.LogFormatter != "xcpretty" {
 		return cfg, nil
@@ -222,7 +185,6 @@ func (b BuildForSimulatorStep) InstallDependencies(cfg RunOpts) (RunOpts, error)
 	return cfg, nil
 }
 
-// Run ...
 func (s BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
 	// ABS out dir pth
 	absOutputDir, err := s.pathModifier.AbsPath(cfg.OutputDir)
@@ -261,48 +223,34 @@ func (s BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
 		return ExportOptions{}, fmt.Errorf("failed to get absolute project path: %s", err)
 	}
 
-	//
-	// Read the Scheme
-	var scheme *xcscheme.Scheme
-	var schemeContainerDir string
-	var conf string
-	{
-		scheme, schemeContainerDir, err = readScheme(absProjectPath, cfg.Scheme)
-
-		if err != nil {
-			return ExportOptions{}, fmt.Errorf("failed to read schema: %s", err)
-		}
-
-		if cfg.Configuration != "" {
-			conf = cfg.Configuration
-		} else {
-			conf = scheme.ArchiveAction.BuildConfiguration
-		}
+	tmpDir, err := pathutil.NormalizedOSTempDirPath("xcodeArchive")
+	if err != nil {
+		return ExportOptions{}, fmt.Errorf("failed to create temp dir, error: %s", err)
 	}
-
-	//
-	// Create the app with Xcode Command Line tools
+	archivePth := filepath.Join(tmpDir, cfg.Scheme+"-simulator.xcarchive")
 	{
 		fmt.Println()
 		log.Infof("Running build")
 
-		actions := []string{"build"}
+		actions := []string{"archive"}
 		if cfg.PerformCleanAction {
 			actions = append(actions, "clean")
 		}
 
-		// Build for simulator command
-		xcodeBuildCmd := xcodebuild.NewCommandBuilder(absProjectPath, actions...)
-		xcodeBuildCmd.SetScheme(cfg.Scheme)
-		xcodeBuildCmd.SetConfiguration(conf)
-		xcodeBuildCmd.SetDestination(cfg.Destination)
-		xcodeBuildCmd.SetCustomOptions(cfg.XcodebuildAdditionalOptions)
+		archiveCmd := xcodebuild.NewCommandBuilder(absProjectPath, actions...)
+		archiveCmd.SetArchivePath(archivePth)
+		archiveCmd.SetScheme(cfg.Scheme)
+		if cfg.Configuration != "" {
+			archiveCmd.SetConfiguration(cfg.Configuration)
+		}
+		archiveCmd.SetDestination(cfg.Destination)
+		archiveCmd.SetCustomOptions(cfg.XcodebuildAdditionalOptions)
 		if cfg.XCConfigContent != "" {
 			xcconfigPath, err := s.XCConfigWriter.Write(cfg.XCConfigContent)
 			if err != nil {
 				return ExportOptions{}, fmt.Errorf("failed to write xcconfig file contents: %w", err)
 			}
-			xcodeBuildCmd.SetXCConfigPath(xcconfigPath)
+			archiveCmd.SetXCConfigPath(xcconfigPath)
 		}
 
 		swiftPackagesPath, err := cache.SwiftPackagesPath(absProjectPath)
@@ -310,7 +258,7 @@ func (s BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
 			return ExportOptions{}, fmt.Errorf("failed to get Swift Packages path: %s", err)
 		}
 
-		rawXcodeBuildOut, err := runCommandWithRetry(xcodeBuildCmd, cfg.LogFormatter == "xcpretty", swiftPackagesPath)
+		rawXcodeBuildOut, err := runCommandWithRetry(archiveCmd, cfg.LogFormatter == "xcpretty", swiftPackagesPath)
 		if err != nil {
 			if cfg.LogFormatter == "xcpretty" {
 				log.Errorf("\nLast lines of the Xcode's build log:")
@@ -328,65 +276,41 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 		}
 	}
 
-	//
 	// Export artifacts
-	var exportedArtifacts []string
-	{
-		fmt.Println()
-		log.Infof("Copy artifacts from Derived Data to %s", absOutputDir)
+	fmt.Println()
+	log.Infof("Copy artifacts to $BITRISE_DEPLOY_DIR")
 
-		proj, err := findBuiltProject(scheme, schemeContainerDir, conf)
-		if err != nil {
-			return ExportOptions{}, fmt.Errorf("failed to open xcproj - (%s), error: %s", absProjectPath, err)
-		}
-
-		customOptions := cfg.XcodebuildAdditionalOptions
-		customOptions = append(customOptions, "-sdk", string(cfg.SimulatorSDK))
-
-		schemeBuildDir, err := buildTargetDirForScheme(proj, absProjectPath, *scheme, conf, customOptions...)
-		if err != nil {
-			return ExportOptions{}, fmt.Errorf("failed to get scheme (%s) build target dir, error: %s", cfg.Scheme, err)
-		}
-
-		log.Debugf("Scheme build dir: %s", schemeBuildDir)
-
-		// Export the artifact from the build dir to the output_dir
-		if exportedArtifacts, err = exportArtifacts(proj, *scheme, schemeBuildDir, conf, cfg.SimulatorSDK, absOutputDir); err != nil {
-			return ExportOptions{}, fmt.Errorf("failed to export the artifacts, error: %s", err)
-		}
+	exportedArtifacts, err := copyArtifactsToDeployDir(archivePth, absOutputDir)
+	if err != nil {
+		return ExportOptions{}, fmt.Errorf("export artifacts: %s", err)
 	}
 
-	exportOptions := ExportOptions{
+	return ExportOptions{
 		Artifacts: exportedArtifacts,
 		OutputDir: absOutputDir,
-	}
-
-	return exportOptions, nil
+	}, nil
 }
 
-// ExportOptions ...
 type ExportOptions struct {
 	Artifacts []string
 	OutputDir string
 }
 
-// ExportOutput ...
 func (b BuildForSimulatorStep) ExportOutput(options ExportOptions) error {
 	fmt.Println()
 	log.Infof("Exporting outputs")
 	if len(options.Artifacts) == 0 {
-		log.Warnf("No exportable artifact have found.")
+		log.Warnf("No exportable artifact found.")
 	} else {
 		mainTargetAppPath, pathMap, err := exportOutput(options.Artifacts)
 		if err != nil {
-			return fmt.Errorf("failed to export outputs (BITRISE_APP_DIR_PATH & BITRISE_APP_DIR_PATH_LIST), error: %s", err)
+			return fmt.Errorf("failed to export outputs (%s & %s), error: %s", bitriseAppDirPathKey, bitriseAppDirPathListKey, err)
 		}
 
-		log.Donef("BITRISE_APP_DIR_PATH -> %s", mainTargetAppPath)
-		log.Donef("BITRISE_APP_DIR_PATH_LIST -> %s", pathMap)
+		log.Donef("%s -> %s", bitriseAppDirPathKey, mainTargetAppPath)
+		log.Donef("%s -> %s", bitriseAppDirPathListKey, pathMap)
 
 		fmt.Println()
-		log.Donef("You can find the exported artifacts in: %s", options.OutputDir)
 	}
 	return nil
 }
@@ -394,331 +318,60 @@ func (b BuildForSimulatorStep) ExportOutput(options ExportOptions) error {
 // Ancillary Methods
 
 func exportOutput(artifacts []string) (string, string, error) {
-	if err := tools.ExportEnvironmentWithEnvman("BITRISE_APP_DIR_PATH", artifacts[0]); err != nil {
+	mainAppArtifact := artifacts[0]
+	if err := tools.ExportEnvironmentWithEnvman(bitriseAppDirPathKey, mainAppArtifact); err != nil {
 		return "", "", err
 	}
 
 	pathMap := strings.Join(artifacts, "|")
 	pathMap = strings.Trim(pathMap, "|")
-	if err := tools.ExportEnvironmentWithEnvman("BITRISE_APP_DIR_PATH_LIST", pathMap); err != nil {
+
+	if err := tools.ExportEnvironmentWithEnvman(bitriseAppDirPathListKey, pathMap); err != nil {
 		return "", "", err
 	}
 	return artifacts[0], pathMap, nil
 }
 
-func readScheme(pth, schemeName string) (*xcscheme.Scheme, string, error) {
-	var scheme *xcscheme.Scheme
-	var schemeContainerDir string
+func copyArtifactsToDeployDir(archivePath string, deployDir string) ([]string, error) {
+	var copiedArtifacts []string
 
-	if xcodeproj.IsXcodeProj(pth) {
-		project, err := xcodeproj.Open(pth)
+	if err := filepath.WalkDir(archivePath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return nil, "", err
+			return err
 		}
 
-		scheme, _, err = project.Scheme(schemeName)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to get scheme (%s) from project (%s), error: %s", schemeName, pth, err)
-		}
-		schemeContainerDir = filepath.Dir(pth)
-	} else if xcworkspace.IsWorkspace(pth) {
-		workspace, err := xcworkspace.Open(pth)
-		if err != nil {
-			return nil, "", err
-		}
+		if d.IsDir() && filepath.Ext(d.Name()) == ".app" {
+			destination := filepath.Join(deployDir, d.Name())
 
-		var containerProject string
-		scheme, containerProject, err = workspace.Scheme(schemeName)
+			cmd := util.CopyDir(path, destination)
+			cmd.SetStdout(os.Stdout)
+			cmd.SetStderr(os.Stderr)
+			log.Debugf("$ " + cmd.PrintableCommandArgs())
+			if err := cmd.Run(); err != nil {
+				log.Debugf("failed to copy the generated app from (%s) to the Deploy dir", path)
+				return err
+			}
+			log.Donef("Copy: $BITRISE_DEPLOY_DIR/%s", d.Name())
 
-		if err != nil {
-			return nil, "", fmt.Errorf("no scheme found with name: %s in workspace: %s, error: %s", schemeName, pth, err)
-		}
-		schemeContainerDir = filepath.Dir(containerProject)
-	} else {
-		return nil, "", fmt.Errorf("unknown project extension: %s", filepath.Ext(pth))
-	}
-	return scheme, schemeContainerDir, nil
-}
-
-// findBuiltProject returns the Xcode project which will be built for the provided scheme
-func findBuiltProject(scheme *xcscheme.Scheme, schemeContainerDir, configurationName string) (xcodeproj.XcodeProj, error) {
-	if configurationName == "" {
-		configurationName = scheme.ArchiveAction.BuildConfiguration
-	}
-
-	if configurationName == "" {
-		return xcodeproj.XcodeProj{}, fmt.Errorf("no configuration provided nor default defined for the scheme's (%s) archive action", scheme.Name)
-	}
-
-	var archiveEntry xcscheme.BuildActionEntry
-	for _, entry := range scheme.BuildAction.BuildActionEntries {
-		if entry.BuildForArchiving != "YES" || !entry.BuildableReference.IsAppReference() {
-			continue
-		}
-		archiveEntry = entry
-		break
-	}
-
-	if archiveEntry.BuildableReference.BlueprintIdentifier == "" {
-		return xcodeproj.XcodeProj{}, fmt.Errorf("archivable entry not found")
-	}
-
-	projectPth, err := archiveEntry.BuildableReference.ReferencedContainerAbsPath(schemeContainerDir)
-	if err != nil {
-		return xcodeproj.XcodeProj{}, err
-	}
-
-	project, err := xcodeproj.Open(projectPth)
-	if err != nil {
-		return xcodeproj.XcodeProj{}, err
-	}
-
-	return project, nil
-}
-
-// buildTargetDirForScheme returns the TARGET_BUILD_DIR for the provided scheme
-func buildTargetDirForScheme(proj xcodeproj.XcodeProj, projectPath string, scheme xcscheme.Scheme, configuration string, customOptions ...string) (string, error) {
-	// Fetch project's main target from .xcodeproject
-	var buildSettings serialized.Object
-	if xcodeproj.IsXcodeProj(projectPath) {
-		mainTarget, err := mainTargetOfScheme(scheme, proj.Proj.Targets)
-		if err != nil {
-			return "", fmt.Errorf("failed to fetch project's targets, error: %s", err)
-		}
-
-		buildSettings, err = proj.TargetBuildSettings(mainTarget.Name, configuration, customOptions...)
-		if err != nil {
-			return "", fmt.Errorf("failed to parse project (%s) build settings, error: %s", projectPath, err)
-		}
-	} else if xcworkspace.IsWorkspace(projectPath) {
-		workspace, err := xcworkspace.Open(projectPath)
-		if err != nil {
-			return "", fmt.Errorf("Failed to open xcworkspace (%s), error: %s", projectPath, err)
-		}
-
-		buildSettings, err = workspace.SchemeBuildSettings(scheme.Name, configuration, customOptions...)
-		if err != nil {
-			return "", fmt.Errorf("failed to parse workspace (%s) build settings, error: %s", projectPath, err)
-		}
-	} else {
-		return "", fmt.Errorf("project file extension should be .xcodeproj or .xcworkspace, but got: %s", filepath.Ext(projectPath))
-
-	}
-
-	schemeBuildDir, err := buildSettings.String("TARGET_BUILD_DIR")
-
-	if err != nil {
-		return "", fmt.Errorf("failed to parse build settings, error: %s", err)
-	}
-
-	return schemeBuildDir, nil
-}
-
-func wrapperNameForScheme(proj xcodeproj.XcodeProj, projectPath string, scheme xcscheme.Scheme, configuration string, customOptions ...string) (string, error) {
-	// Fetch project's main target from .xcodeproject
-	var buildSettings serialized.Object
-	if xcodeproj.IsXcodeProj(projectPath) {
-		mainTarget, err := mainTargetOfScheme(scheme, proj.Proj.Targets)
-		if err != nil {
-			return "", fmt.Errorf("failed to fetch project's targets, error: %s", err)
-		}
-
-		buildSettings, err = proj.TargetBuildSettings(mainTarget.Name, configuration, customOptions...)
-		if err != nil {
-			return "", fmt.Errorf("failed to parse project (%s) build settings, error: %s", projectPath, err)
-		}
-	} else if xcworkspace.IsWorkspace(projectPath) {
-		workspace, err := xcworkspace.Open(projectPath)
-		if err != nil {
-			return "", fmt.Errorf("failed to open xcworkspace (%s), error: %s", projectPath, err)
-		}
-
-		buildSettings, err = workspace.SchemeBuildSettings(scheme.Name, configuration, customOptions...)
-		if err != nil {
-			return "", fmt.Errorf("failed to parse workspace (%s) build settings, error: %s", projectPath, err)
-		}
-	} else {
-		return "", fmt.Errorf("project file extension should be .xcodeproj or .xcworkspace, but got: %s", filepath.Ext(projectPath))
-
-	}
-
-	wrapperName, err := buildSettings.String("WRAPPER_NAME")
-
-	if err != nil {
-		return "", fmt.Errorf("failed to parse build settings, error: %s", err)
-	}
-
-	return wrapperName, nil
-}
-
-// exportArtifacts exports the main target and it's .app dependencies.
-func exportArtifacts(proj xcodeproj.XcodeProj, scheme xcscheme.Scheme, schemeBuildDir, configuration string, simulatorSDK simulatorSDK, deployDir string, customOptions ...string) ([]string, error) {
-	var exportedArtifacts []string
-	splitSchemeDir := strings.Split(schemeBuildDir, "Build/")
-	var schemeDir string
-
-	// Split the scheme's TARGET_BUILD_DIR by the BUILD dir. This path will be the base path for the targets's TARGET_BUILD_DIR
-	//
-	// xcodebuild -showBuildSettings will produce different outputs if you call it with a -workspace & -scheme or if you call it with a -project & -target.
-	// We need to call xcodebuild -showBuildSettings for all of the project targets to find the build artifacts (iOS, watchOS etc...)
-	if len(splitSchemeDir) != 2 {
-		log.Debugf("failed to parse scheme's build target dir: %s. Using the original build dir (%s)\n", schemeBuildDir, schemeBuildDir)
-		schemeDir = schemeBuildDir
-	} else {
-		schemeDir = filepath.Join(splitSchemeDir[0], "Build")
-	}
-
-	mainTarget, err := mainTargetOfScheme(scheme, proj.Proj.Targets)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch project's targets, error: %s", err)
-	}
-
-	targets := append([]xcodeproj.Target{mainTarget}, proj.DependentTargetsOfTarget(mainTarget)...)
-	for _, target := range targets {
-		log.Donef(target.Name + "...")
-
-		// Is the target an application? -> If not skip the export
-		if !target.IsAppProduct() {
-			log.Printf("Target (%s) is not an .app - SKIP", target.Name)
-			continue
-		}
-
-		//
-		// Find out the sdk for the target
-		{
-			settings, err := proj.TargetBuildSettings(target.Name, configuration)
+			copiedArtifacts = append(copiedArtifacts, destination)
+			
+			err = ziputil.ZipDir(destination, destination+".zip", false)
 			if err != nil {
-				log.Debugf("Failed to fetch project settings (%s), error: %s", proj.Path, err)
+				log.Errorf("Failed to zip %s: %s", destination, err)
 			}
-
-			sdkRoot, err := settings.String("SDKROOT")
-			if err != nil {
-				log.Debugf("No SDKROOT config found for (%s) target", target.Name)
-			}
-
-			log.Debugf("sdkRoot: %s", sdkRoot)
-
-			if strings.Contains(sdkRoot, "WatchOS.platform") {
-				simulatorSDK = watchOSSimSDK
-			}
+			log.Donef("Zip: $BITRISE_DEPLOY_DIR/%s.zip", d.Name())
 		}
 
-		//
-		// Find the TARGET_BUILD_DIR for the target
-		options := []string{"-sdk", string(simulatorSDK)}
-		var targetDir string
-		{
-			if sliceutil.IsStringInSlice("-sdk", customOptions) {
-				options = customOptions
-			} else {
-				options = append(options, customOptions...)
-			}
-
-			buildSettings, err := proj.TargetBuildSettings(target.Name, configuration, options...)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get project build settings, error: %s", err)
-			}
-
-			buildDir, err := buildSettings.String("TARGET_BUILD_DIR")
-			if err != nil {
-				return nil, fmt.Errorf("failed to get build target dir for target (%s), error: %s", target.Name, err)
-			}
-
-			log.Debugf("Target (%s) TARGET_BUILD_DIR: %s", target.Name, buildDir)
-
-			// Split the target's TARGET_BUILD_DIR by the BUILD dir. This path will be joined to the `schemeBuildDir`
-			//
-			// xcodebuild -showBuildSettings will produce different outputs if you call it with a -workspace & -scheme or if you call it with a -project & -target.
-			// We need to call xcodebuild -showBuildSettings for all of the project targets to find the build artifacts (iOS, watchOS etc...)
-			splitTargetDir := strings.Split(buildDir, "Build/")
-			if len(splitTargetDir) != 2 {
-				log.Debugf("failed to parse build target dir (%s) for target: %s. Using the original build dir (%s)\n", buildDir, target.Name, buildDir)
-				targetDir = buildDir
-			} else {
-				targetDir = splitTargetDir[1]
-			}
-		}
-
-		//
-		// Copy - export
-		{
-
-			// Search for the generated build artifact in the next dirs:
-			// Parent dir (main target's build dir by the provided scheme) + current target's build dir (This is a default for a nativ iOS project)
-			// current target's build dir (If the project settings uses a custom TARGET_BUILD_DIR env)
-			// .xcodeproj's directory + current target's build dir (If the project settings uses a custom TARGET_BUILD_DIR env & the project is not in the root dir)
-			sourceDirs := []string{filepath.Join(schemeDir, targetDir), schemeDir, filepath.Join(path.Dir(proj.Path), schemeDir)}
-			destination := filepath.Join(deployDir, target.ProductReference.Path)
-
-			// Search for the generated build artifact
-			var exported bool
-			for _, sourceDir := range sourceDirs {
-				source := filepath.Join(sourceDir, target.ProductReference.Path)
-				log.Debugf("searching for the generated app in %s", source)
-
-				if exists, err := pathutil.IsPathExists(source); err != nil {
-					log.Debugf("failed to check if the path exists: (%s), error: ", source, err)
-					continue
-
-				} else if !exists {
-					log.Debugf("path not exists: %s", source)
-					// Also check to see if a path exists with the target name
-					wrapperName, err := wrapperNameForScheme(proj, proj.Path, scheme, configuration, customOptions...)
-					if err != nil {
-						return nil, fmt.Errorf("failed to get Scheme (%s) build target dir, error: %s", scheme.Name, err)
-					}
-					source = filepath.Join(sourceDir, wrapperName)
-
-					if exists, err := pathutil.IsPathExists(source); err != nil {
-						log.Debugf("failed to check if the path exists: (%s), error: ", source, err)
-						continue
-					} else if !exists {
-						log.Debugf("2nd path does not exist: %s", source)
-						continue
-					}
-				}
-
-				// Copy the build artifact
-				cmd := util.CopyDir(source, destination)
-				cmd.SetStdout(os.Stdout)
-				cmd.SetStderr(os.Stderr)
-				log.Debugf("$ " + cmd.PrintableCommandArgs())
-				if err := cmd.Run(); err != nil {
-					log.Debugf("failed to copy the generated app from (%s) to the Deploy dir\n", source)
-					continue
-				}
-
-				exported = true
-				break
-			}
-
-			if exported {
-				exportedArtifacts = append(exportedArtifacts, destination)
-				log.Debugf("Success\n")
-			} else {
-				return nil, fmt.Errorf("failed to copy the generated app to the Deploy dir")
-			}
-		}
+		return nil
+	}); err != nil {
+		return nil, fmt.Errorf("failed to walk through the archive path: %s", err)
 	}
 
-	return exportedArtifacts, nil
-}
-
-// mainTargetOfScheme return the main target
-func mainTargetOfScheme(scheme xcscheme.Scheme, targets []xcodeproj.Target) (xcodeproj.Target, error) {
-	var blueIdent string
-	for _, entry := range scheme.BuildAction.BuildActionEntries {
-		if entry.BuildableReference.IsAppReference() {
-			blueIdent = entry.BuildableReference.BlueprintIdentifier
-			break
-		}
+	if len(copiedArtifacts) != 0 {
+		log.Debugf("Success\n")
+	} else {
+		return nil, fmt.Errorf("didn't find any app artifacts")
 	}
 
-	// Search for the main target
-	for _, t := range targets {
-		if t.ID == blueIdent {
-			return t, nil
-		}
-	}
-	return xcodeproj.Target{}, fmt.Errorf("failed to find the project's main target for scheme (%s)", scheme.Name)
+	return copiedArtifacts, nil
 }

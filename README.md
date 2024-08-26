@@ -75,7 +75,7 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | --- | --- |
 | `BITRISE_APP_DIR_PATH` | The path to the generated (and copied) app directory |
 | `BITRISE_APP_DIR_PATH_LIST` | This output will include the main target app's path, plus every dependent target's app path.  The paths are separated by a `\|` (pipe) character. (Example: `/deploy109787178/sample-apps-ios-workspace-swift.app\|/deploy109787178/bitfall.sample-apps-ios-workspace-swift-watch.app`) |
-| `BITRISE_XCODE_BUILD_RAW_RESULT_TEXT_PATH` | This is the path to the raw build results log file.  If `output_tool` is set to `xcpretty` and the build fails, this log will contain the build output. |
+| `BITRISE_XCODEBUILD_BUILD_FOR_SIMULATOR_LOG_PATH` | The file path of the raw `xcodebuild build` command log. The log is placed into the `Output directory path`.  Only set if `log_formatter` is set to `xcpretty`. |
 </details>
 
 ## 🙋 Contributing
