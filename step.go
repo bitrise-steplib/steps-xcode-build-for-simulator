@@ -17,7 +17,6 @@ import (
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	v2pathutil "github.com/bitrise-io/go-utils/v2/pathutil"
-	"github.com/bitrise-io/go-xcode/v2/destination"
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	cache "github.com/bitrise-io/go-xcode/xcodecache"
@@ -54,9 +53,9 @@ type Config struct {
 }
 
 type RunOpts struct {
-	ProjectPath  string
-	Scheme       string
-	Destination  string
+	ProjectPath string
+	Scheme      string
+	Destination string
 
 	Configuration               string
 	XCConfigContent             string
@@ -114,9 +113,9 @@ func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 	}
 
 	return RunOpts{
-		ProjectPath:  config.ProjectPath,
-		Scheme:       config.Scheme,
-		Destination:  config.Destination,
+		ProjectPath: config.ProjectPath,
+		Scheme:      config.Scheme,
+		Destination: config.Destination,
 
 		Configuration:               config.Configuration,
 		XCConfigContent:             config.XCConfigContent,
@@ -284,7 +283,7 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 
 	exportedArtifacts, err := exportArtifacts(archivePth, absOutputDir)
 	if err != nil {
-		return ExportOptions{}, fmt.Errorf("failed to export the artifacts, error: %s", err)
+		return ExportOptions{}, fmt.Errorf("export artifacts: %s", err)
 	}
 
 	return ExportOptions{
