@@ -20,7 +20,6 @@ import (
 	"github.com/bitrise-io/go-utils/ziputil"
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
-	cache "github.com/bitrise-io/go-xcode/xcodecache"
 	"github.com/bitrise-io/go-xcode/xcpretty"
 	"github.com/kballard/go-shellquote"
 
@@ -48,9 +47,6 @@ type Config struct {
 
 	// Output export
 	OutputDir string `env:"output_dir,required"`
-
-	// Caching
-	CacheLevel string `env:"cache_level,opt[none,swift_packages]"`
 
 	// Debugging
 	VerboseLog bool `env:"verbose_log,required"`
@@ -125,8 +121,6 @@ func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 		LogFormatter:                config.LogFormatter,
 
 		OutputDir: config.OutputDir,
-
-		CacheLevel: config.CacheLevel,
 	}, nil
 }
 
@@ -253,12 +247,7 @@ func (s BuildForSimulatorStep) Run(cfg RunOpts) (ExportOptions, error) {
 			archiveCmd.SetXCConfigPath(xcconfigPath)
 		}
 
-		swiftPackagesPath, err := cache.SwiftPackagesPath(absProjectPath)
-		if err != nil {
-			return ExportOptions{}, fmt.Errorf("failed to get Swift Packages path: %s", err)
-		}
-
-		rawXcodeBuildOut, err := runCommandWithRetry(archiveCmd, cfg.LogFormatter == "xcpretty", swiftPackagesPath)
+		rawXcodeBuildOut, err := runCommand(archiveCmd, cfg.LogFormatter == "xcpretty")
 		if err != nil {
 			if cfg.LogFormatter == "xcpretty" {
 				log.Errorf("\nLast lines of the Xcode's build log:")
