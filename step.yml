@@ -179,25 +179,6 @@ inputs:
     description: This directory will contain the generated artifacts.
     is_required: true
 
-# Caching
-
-- cache_level: swift_packages
-  opts:
-    category: Caching
-    title: Enable collecting cache content
-    summary: Defines what cache content should be automatically collected.
-    description: |-
-      Defines what cache content should be automatically collected.
-
-      Available options:
-
-      - `none`: Disable collecting cache content
-      - `swift_packages`: Collect Swift PM packages added to the Xcode project
-    is_required: true
-    value_options:
-    - none
-    - swift_packages
-
 # Debugging
 
 - verbose_log: "no"
