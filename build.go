@@ -15,7 +15,7 @@ import (
 
 func prepareCommand(xcodeCmd *xcodebuild.CommandBuilder, useXcpretty bool, output *bytes.Buffer) (*command.Model, *xcpretty.CommandModel) {
 	if useXcpretty {
-		return nil, xcpretty.New(*xcodeCmd)
+		return nil, xcpretty.New(xcodeCmd)
 	}
 
 	buildRootCmd := xcodeCmd.Command()
