@@ -289,7 +289,7 @@ func deployAllApps(outputDir string, result archive.RunResult, logger log.Logger
 
 		deployPaths = append(deployPaths, dst)
 	}
-	exportEnvironmentWithEnvman(cmdFactory, bitriseAppDirPathListKey, strings.Join(deployPaths, "|"))
+	_ = exportEnvironmentWithEnvman(cmdFactory, bitriseAppDirPathListKey, strings.Join(deployPaths, "|"))
 }
 
 func getAppPathsFromResult(result archive.RunResult) []string {
