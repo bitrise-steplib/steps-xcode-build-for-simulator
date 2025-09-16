@@ -78,7 +78,7 @@ github.com/bitrise-io/go-xcode/v2/xcconfig
 github.com/bitrise-io/go-xcode/v2/xcodecache
 github.com/bitrise-io/go-xcode/v2/xcodecommand
 github.com/bitrise-io/go-xcode/v2/xcodeversion
-# github.com/bitrise-steplib/steps-xcode-archive v0.0.0-20250916103848-5127d769f6d8
+# github.com/bitrise-steplib/steps-xcode-archive v0.0.0-20250916104859-854d3667d8c1
 ## explicit; go 1.23.0
 github.com/bitrise-steplib/steps-xcode-archive/step
 # github.com/davecgh/go-spew v1.1.1
