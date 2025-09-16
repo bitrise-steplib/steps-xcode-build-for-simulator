@@ -24,6 +24,7 @@ import (
 
 const (
 	minSupportedXcodeMajorVersion = 9
+	bitriseAppDirPathListKey      = "BITRISE_APP_DIR_PATH_LIST"
 )
 
 func main() {
@@ -59,8 +60,10 @@ func run() int {
 	exportOpts := createExportOptions(config, result)
 	if err := archiver.ExportOutput(exportOpts); err != nil {
 		logger.Errorf("%s", errorutil.FormattedError(fmt.Errorf("Failed to export Step outputs: %w", err)))
-		return 1
+		exitCode = 1
 	}
+
+	deployAllApps(config.OutputDir, result, logger)
 
 	return exitCode
 }
@@ -267,4 +270,69 @@ func createExportOptions(config Config, result archive.RunResult) archive.Export
 		XcodebuildExportArchiveLog: result.XcodebuildExportArchiveLog,
 		IDEDistrubutionLogsDir:     result.IDEDistrubutionLogsDir,
 	}
+}
+
+func deployAllApps(outputDir string, result archive.RunResult, logger log.Logger) {
+	envRepository := env.NewRepository()
+	cmdFactory := command.NewFactory(envRepository)
+
+	paths := getAppPathsFromResult(result)
+	var deployPaths []string
+	for _, p := range paths {
+		if !strings.HasSuffix(filepath.Base(p), "app") {
+			continue
+		}
+		dst := filepath.Join(outputDir, filepath.Base(p))
+		if err := copy(cmdFactory, p, dst); err != nil {
+			logger.Errorf("failed to copy %s to deploy folder", p)
+		}
+
+		deployPaths = append(deployPaths, dst)
+	}
+	exportEnvironmentWithEnvman(cmdFactory, bitriseAppDirPathListKey, strings.Join(deployPaths, "|"))
+}
+
+func getAppPathsFromResult(result archive.RunResult) []string {
+	var paths []string
+
+	if result.Archive == nil {
+		return paths
+	}
+
+	// Base
+	paths = append(paths, result.Archive.Application.Path)
+
+	// Clip
+	if clipApp := result.Archive.Application.ClipApplication; clipApp != nil {
+		if clipAppPath := clipApp.Path; clipAppPath != "" {
+			paths = append(paths, clipAppPath)
+		}
+	}
+
+	// Watch
+	if watchApp := result.Archive.Application.WatchApplication; watchApp != nil {
+		if watchAppPath := watchApp.Path; watchAppPath != "" {
+			paths = append(paths, watchAppPath)
+		}
+		for _, watchExt := range watchApp.Extensions {
+			paths = append(paths, watchExt.Path)
+		}
+	}
+
+	// Extensions
+	for _, ext := range result.Archive.Application.Extensions {
+		paths = append(paths, ext.Path)
+	}
+
+	return paths
+}
+
+func exportEnvironmentWithEnvman(cmdFactory command.Factory, keyStr, valueStr string) error {
+	cmd := cmdFactory.Create("envman", []string{"add", "--key", keyStr}, &command.Opts{Stdin: strings.NewReader(valueStr)})
+	return cmd.Run()
+}
+
+func copy(cmdFactory command.Factory, src, dst string) error {
+	cmd := cmdFactory.Create("cp", []string{"-rf", src, dst}, nil)
+	return cmd.Run()
 }
