@@ -256,9 +256,12 @@ func createRunOptions(config Config) archive.RunOpts {
 }
 
 func createExportOptions(config Config, result archive.RunResult) archive.ExportOpts {
+	mainAppPathBase := filepath.Base(result.Archive.Application.Path)
+	mainAppPathExt := filepath.Ext(result.Archive.Application.Path)
+
 	return archive.ExportOpts{
 		OutputDir:      config.OutputDir,
-		ArtifactName:   result.ArtifactName,
+		ArtifactName:   strings.TrimSuffix(mainAppPathBase, mainAppPathExt),
 		ExportAllDsyms: true,
 
 		Archive: result.Archive,
@@ -275,6 +278,7 @@ func createExportOptions(config Config, result archive.RunResult) archive.Export
 func deployAllApps(outputDir string, result archive.RunResult, logger log.Logger) {
 	envRepository := env.NewRepository()
 	cmdFactory := command.NewFactory(envRepository)
+	pathChecker := pathutil.NewPathChecker()
 
 	paths := getAppPathsFromResult(result)
 	var deployPaths []string
@@ -283,8 +287,11 @@ func deployAllApps(outputDir string, result archive.RunResult, logger log.Logger
 			continue
 		}
 		dst := filepath.Join(outputDir, filepath.Base(p))
-		if err := copy(cmdFactory, p, dst); err != nil {
-			logger.Errorf("failed to copy %s to deploy folder", p)
+		exists, err := pathChecker.IsDirExists(dst)
+		if err == nil && !exists {
+			if err := copy(cmdFactory, p, dst); err != nil {
+				logger.Errorf("failed to copy %s to deploy folder", p)
+			}
 		}
 
 		deployPaths = append(deployPaths, dst)
