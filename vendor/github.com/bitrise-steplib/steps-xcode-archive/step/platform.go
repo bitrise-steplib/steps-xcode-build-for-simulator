@@ -23,9 +23,9 @@ const (
 	visionOS       Platform = "visionOS"
 
 	// Not permitted on this steps UI, but may come from build-for-simulator
-	iOSSimulator     Platform = "generic/platform=iOS Simulator"
-	watchOSSimulator Platform = "generic/platform=watchOS Simulator"
-	tvOSSimulator    Platform = "generic/platform=tvOS Simulator"
+	iOSSimulator     Platform = "iOS Simulator"
+	watchOSSimulator Platform = "watchOS Simulator"
+	tvOSSimulator    Platform = "tvOS Simulator"
 )
 
 func parsePlatform(platform string) (Platform, error) {
