@@ -233,7 +233,7 @@ func createRunOptions(config Config) archive.RunOpts {
 		DestinationPlatform: platform,
 		Configuration:       config.Configuration,
 		XcodeMajorVersion:   config.XcodeMajorVersion,
-		ArtifactName:        config.Scheme + "-simulator",
+		ArtifactName:        config.Scheme,
 
 		CodesignManager: nil,
 
