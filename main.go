@@ -222,10 +222,15 @@ func createXcodebuildArchiver(logger log.Logger, logFormatter string) (archive.X
 }
 
 func createRunOptions(config Config) archive.RunOpts {
+	platform, err := archive.ParsePlatform(config.Destination)
+	if err != nil {
+		platform = archive.Platform("iOS Simulator") // default to iOS Simulator if parsing fails
+	}
+
 	return archive.RunOpts{
 		ProjectPath:         config.ProjectPath,
 		Scheme:              config.Scheme,
-		DestinationPlatform: archive.Platform(config.Destination),
+		DestinationPlatform: platform,
 		Configuration:       config.Configuration,
 		XcodeMajorVersion:   config.XcodeMajorVersion,
 		ArtifactName:        config.Scheme + "-simulator.xcarchive",

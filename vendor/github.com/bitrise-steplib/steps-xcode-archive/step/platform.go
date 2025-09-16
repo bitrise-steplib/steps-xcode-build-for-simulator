@@ -28,7 +28,7 @@ const (
 	tvOSSimulator    Platform = "tvOS Simulator"
 )
 
-func ParsePlatform(platform string) (Platform, error) {
+func parsePlatform(platform string) (Platform, error) {
 	switch strings.ToLower(platform) {
 	case "detect":
 		return detectPlatform, nil
@@ -40,11 +40,11 @@ func ParsePlatform(platform string) (Platform, error) {
 		return watchOS, nil
 	case "visionos":
 		return visionOS, nil
-	case "ios simulator":
+	case "generic/platform=ios simulator":
 		return iOSSimulator, nil
-	case "watchos simulator":
+	case "generic/platform=watchos simulator":
 		return watchOSSimulator, nil
-	case "tvos simulator":
+	case "generic/platform=tvos simulator":
 		return tvOSSimulator, nil
 	default:
 		return "", fmt.Errorf("unknown platform: %s", platform)
