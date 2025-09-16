@@ -289,7 +289,10 @@ func deployAllApps(outputDir string, result archive.RunResult, logger log.Logger
 
 		deployPaths = append(deployPaths, dst)
 	}
-	_ = exportEnvironmentWithEnvman(cmdFactory, bitriseAppDirPathListKey, strings.Join(deployPaths, "|"))
+	err := exportEnvironmentWithEnvman(cmdFactory, bitriseAppDirPathListKey, strings.Join(deployPaths, "|"))
+	if err != nil {
+		logger.Errorf("failed to export variable %s", bitriseAppDirPathListKey)
+	}
 }
 
 func getAppPathsFromResult(result archive.RunResult) []string {
