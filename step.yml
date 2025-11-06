@@ -39,10 +39,12 @@ source_code_url: https://github.com/bitrise-steplib/steps-xcode-build-for-simula
 support_url: https://github.com/bitrise-steplib/steps-xcode-build-for-simulator/issues
 
 project_type_tags:
-- ios
-- react-native
 - cordova
+- flutter
 - ionic
+- ios
+- kotlin-multiplatform
+- react-native
 type_tags:
 - build
 
