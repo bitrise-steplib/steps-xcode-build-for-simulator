@@ -1,0 +1,584 @@
+package codesign
+
+import (
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-xcode/certificateutil"
+	"github.com/bitrise-io/go-xcode/exportoptions"
+	"github.com/bitrise-io/go-xcode/plistutil"
+	"github.com/bitrise-io/go-xcode/profileutil"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/localcodesignasset"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager"
+	"github.com/bitrise-io/go-xcode/v2/devportalservice"
+	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator"
+	"github.com/bitrise-io/go-xcode/v2/xcarchive"
+)
+
+// AuthType ...
+type AuthType int
+
+const (
+	// APIKeyAuth ...
+	APIKeyAuth AuthType = iota
+	// AppleIDAuth ...
+	AppleIDAuth
+)
+
+type codeSigningStrategy int
+
+const (
+	codeSigningXcode codeSigningStrategy = iota
+	codeSigningBitriseAPIKey
+	codeSigningBitriseAppleID
+)
+
+// Opts ...
+type Opts struct {
+	AuthType                   AuthType
+	ShouldConsiderXcodeSigning bool
+	TeamID                     string
+
+	ExportMethod      autocodesign.DistributionType
+	XcodeMajorVersion int
+
+	RegisterTestDevices    bool
+	SignUITests            bool
+	MinDaysProfileValidity int
+	IsVerboseLog           bool
+}
+
+// Manager ...
+type Manager struct {
+	opts Opts
+
+	appleAuthCredentials      devportalservice.Credentials
+	bitriseTestDevices        []devportalservice.TestDevice
+	devPortalClientFactory    devportalclient.Factory
+	certDownloader            autocodesign.CertificateProvider
+	fallbackProfileDownloader autocodesign.ProfileProvider
+	assetInstaller            autocodesign.AssetWriter
+	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager
+	profileConverter          localcodesignasset.ProvisioningProfileConverter
+
+	detailsProvider DetailsProvider
+	assetWriter     AssetWriter
+
+	logger log.Logger
+}
+
+// NewManagerWithArchive creates a codesign manager, which reads the code signing asset requirements from an XCArchive file.
+func NewManagerWithArchive(
+	opts Opts,
+	appleAuth devportalservice.Credentials,
+	bitriseTestDevices []devportalservice.TestDevice,
+	clientFactory devportalclient.Factory,
+	certDownloader autocodesign.CertificateProvider,
+	fallbackProfileDownloader autocodesign.ProfileProvider,
+	assetInstaller autocodesign.AssetWriter,
+	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager,
+	profileConverter localcodesignasset.ProvisioningProfileConverter,
+	archive xcarchive.IosArchive,
+	logger log.Logger,
+) Manager {
+	return Manager{
+		opts:                      opts,
+		appleAuthCredentials:      appleAuth,
+		bitriseTestDevices:        bitriseTestDevices,
+		devPortalClientFactory:    clientFactory,
+		certDownloader:            certDownloader,
+		fallbackProfileDownloader: fallbackProfileDownloader,
+		assetInstaller:            assetInstaller,
+		localCodeSignAssetManager: localCodeSignAssetManager,
+		profileConverter:          profileConverter,
+		detailsProvider:           archive,
+		logger:                    logger,
+	}
+}
+
+// NewManagerWithProject creates a codesign manager, which reads the code signing asset requirements from an Xcode Project.
+func NewManagerWithProject(
+	opts Opts,
+	appleAuth devportalservice.Credentials,
+	bitriseTestDevices []devportalservice.TestDevice,
+	clientFactory devportalclient.Factory,
+	certDownloader autocodesign.CertificateProvider,
+	fallbackProfileDownloader autocodesign.ProfileProvider,
+	assetInstaller autocodesign.AssetWriter,
+	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager,
+	profileConverter localcodesignasset.ProvisioningProfileConverter,
+	project projectmanager.Project,
+	logger log.Logger,
+) Manager {
+	return Manager{
+		opts:                      opts,
+		appleAuthCredentials:      appleAuth,
+		bitriseTestDevices:        bitriseTestDevices,
+		devPortalClientFactory:    clientFactory,
+		certDownloader:            certDownloader,
+		fallbackProfileDownloader: fallbackProfileDownloader,
+		assetInstaller:            assetInstaller,
+		localCodeSignAssetManager: localCodeSignAssetManager,
+		profileConverter:          profileConverter,
+		detailsProvider:           project,
+		assetWriter:               project,
+		logger:                    logger,
+	}
+}
+
+// DetailsProvider ...
+type DetailsProvider interface {
+	IsSigningManagedAutomatically() (bool, error)
+	Platform() (autocodesign.Platform, error)
+	GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error)
+}
+
+// AssetWriter ...
+type AssetWriter interface {
+	ForceCodesignAssets(distribution autocodesign.DistributionType, codesignAssetsByDistributionType map[autocodesign.DistributionType]autocodesign.AppCodesignAssets) error
+}
+
+// PrepareCodesigning selects a suitable code signing strategy based on the step and project configuration,
+// then downloads code signing assets (profiles, certificates) and registers test devices if needed
+func (m *Manager) PrepareCodesigning() (*devportalservice.APIKeyConnection, map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, error) {
+	strategy, reason, err := m.selectCodeSigningStrategy(m.appleAuthCredentials)
+	if err != nil {
+		m.logger.Warnf("%s", err)
+	}
+
+	switch strategy {
+	case codeSigningXcode:
+		{
+			m.logger.Println()
+			m.logger.Infof("Code signing asset management with xcodebuild")
+			m.logger.Printf("Reason: %s", reason)
+			m.logger.Println()
+			m.logger.TInfof("Downloading certificates...")
+			certificates, err := m.downloadCertificates()
+			if err != nil {
+				return nil, nil, err
+			}
+
+			if err := m.validateCertificatesForXcodeManagedSigning(certificates); err != nil {
+				return nil, nil, err
+			}
+
+			m.logger.Println()
+			m.logger.TInfof("Installing certificates...")
+			if err := m.installCertificates(certificates); err != nil {
+				return nil, nil, err
+			}
+
+			needsTestDevices := autocodesign.DistributionTypeRequiresDeviceList([]autocodesign.DistributionType{m.opts.ExportMethod})
+			if needsTestDevices && m.opts.RegisterTestDevices && len(m.bitriseTestDevices) != 0 {
+				if err := m.registerTestDevices(m.appleAuthCredentials, m.bitriseTestDevices); err != nil {
+					return nil, nil, err
+				}
+			}
+
+			return m.appleAuthCredentials.APIKey, nil, nil
+		}
+	case codeSigningBitriseAPIKey, codeSigningBitriseAppleID:
+		{
+			m.logger.Println()
+			m.logger.Infof("Code signing asset management by Bitrise")
+			m.logger.Printf("Reason: %s", reason)
+			codesigningAssets, err := m.prepareCodeSigningWithBitrise(m.appleAuthCredentials, m.bitriseTestDevices)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			return nil, codesigningAssets, nil
+		}
+	default:
+		return nil, nil, fmt.Errorf("unknown code sign strategy")
+	}
+}
+
+// SelectConnectionCredentials selects the final credentials for Apple services based on:
+// - connections set up on Bitrise.io (globally for app)
+// - step inputs for overriding the global config
+func SelectConnectionCredentials(
+	authType AuthType,
+	bitriseConnection *devportalservice.AppleDeveloperConnection,
+	inputs ConnectionOverrideInputs, logger log.Logger) (devportalservice.Credentials, error) {
+	if authType == APIKeyAuth && inputs.APIKeyPath != "" && inputs.APIKeyIssuerID != "" && inputs.APIKeyID != "" {
+		logger.Infof("Overriding Bitrise Apple Service connection with Step-provided credentials (api_key_path, api_key_id, api_key_issuer_id)")
+
+		config, err := parseConnectionOverrideConfig(inputs.APIKeyPath, inputs.APIKeyID, inputs.APIKeyIssuerID, inputs.APIKeyEnterpriseAccount, logger)
+		if err != nil {
+			return devportalservice.Credentials{}, err
+		}
+		return devportalservice.Credentials{
+			APIKey:  config,
+			AppleID: nil,
+		}, nil
+	}
+
+	if authType == APIKeyAuth {
+		if bitriseConnection == nil || bitriseConnection.APIKeyConnection == nil {
+			logger.Warnf(devportalclient.NotConnectedWarning)
+			return devportalservice.Credentials{}, fmt.Errorf("Apple Service connection via App Store Connect API key is not estabilished")
+		}
+
+		logger.Donef("Using Apple Service connection with API key.")
+		return devportalservice.Credentials{
+			APIKey:  bitriseConnection.APIKeyConnection,
+			AppleID: nil,
+		}, nil
+	}
+
+	if authType == AppleIDAuth {
+		if bitriseConnection == nil || bitriseConnection.AppleIDConnection == nil {
+			logger.Warnf(devportalclient.NotConnectedWarning)
+			return devportalservice.Credentials{}, fmt.Errorf("Apple Service connection through Apple ID is not estabilished")
+		}
+
+		session, err := bitriseConnection.AppleIDConnection.FastlaneLoginSession()
+		if err != nil {
+			return devportalservice.Credentials{}, fmt.Errorf("failed to restore Apple ID login session: %w", err)
+		}
+
+		if session != "" &&
+			bitriseConnection.AppleIDConnection.SessionExpiryDate != nil &&
+			bitriseConnection.AppleIDConnection.SessionExpiryDate.Before(time.Now()) {
+			logger.Warnf("Two-factor session has expired at: %s", bitriseConnection.AppleIDConnection.SessionExpiryDate.Format("2006-01-02 15:04"))
+		}
+
+		logger.Donef("Using Apple Service connection with Apple ID.")
+		return devportalservice.Credentials{
+			AppleID: &devportalservice.AppleID{
+				Username:            bitriseConnection.AppleIDConnection.AppleID,
+				Password:            bitriseConnection.AppleIDConnection.Password,
+				Session:             session,
+				AppSpecificPassword: bitriseConnection.AppleIDConnection.AppSpecificPassword,
+			},
+			APIKey: nil,
+		}, nil
+	}
+
+	panic("Unexpected AuthType")
+}
+
+func (m *Manager) selectCodeSigningStrategy(credentials devportalservice.Credentials) (codeSigningStrategy, string, error) {
+	const manualProfilesReason = "Using Bitrise-managed code signing assets with API key because Automatically managed signing is disabled in Xcode for the project."
+
+	if credentials.AppleID != nil {
+		return codeSigningBitriseAppleID, "Using Bitrise-managed code signing assets with Apple ID because Apple ID authentication is not supported by xcodebuild.", nil
+	}
+
+	if credentials.APIKey == nil {
+		panic("No App Store Connect API authentication credentials found.")
+	}
+
+	if !m.opts.ShouldConsiderXcodeSigning {
+		return codeSigningBitriseAPIKey, "", nil
+	}
+
+	if m.opts.XcodeMajorVersion < 13 {
+		return codeSigningBitriseAPIKey, "Using Bitrise-managed code signing assets with API key because 'xcodebuild -allowProvisioningUpdates' with API authentication requires Xcode 13 or higher.", nil
+	}
+
+	if credentials.APIKey.EnterpriseAccount {
+		return codeSigningBitriseAPIKey, "Using Bitrise-managed code signing assets with API key because 'xcodebuild -allowProvisioningUpdates' for Enterprise Program is not yet supported.", nil
+	}
+
+	isManaged, err := m.detailsProvider.IsSigningManagedAutomatically()
+	if err != nil {
+		return codeSigningBitriseAPIKey, manualProfilesReason, err
+	}
+
+	if !isManaged {
+		return codeSigningBitriseAPIKey, manualProfilesReason, nil
+	}
+
+	if m.opts.MinDaysProfileValidity > 0 {
+		return codeSigningBitriseAPIKey, "Specifying the minimum validity period of the Provisioning Profile is not supported by xcodebuild.", nil
+	}
+
+	return codeSigningXcode, "Automatically managed signing is enabled in Xcode for the project.", nil
+}
+
+func (m *Manager) downloadCertificates() ([]certificateutil.CertificateInfoModel, error) {
+	certificates, err := m.certDownloader.GetCertificates()
+	if err != nil {
+		return nil, fmt.Errorf("failed to download certificates: %s", err)
+	}
+
+	if len(certificates) == 0 {
+		m.logger.Warnf("No certificates are uploaded.")
+
+		return nil, nil
+	}
+
+	m.logger.Printf("%d certificates downloaded:", len(certificates))
+	for _, cert := range certificates {
+		m.logger.Printf("- %s", cert)
+	}
+
+	return certificates, nil
+}
+
+func (m *Manager) installCertificates(certificates []certificateutil.CertificateInfoModel) error {
+	for _, cert := range certificates {
+		// Empty passphrase provided, as already parsed certificate + private key
+		if err := m.assetInstaller.InstallCertificate(cert); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *Manager) validateCertificatesForXcodeManagedSigning(certificates []certificateutil.CertificateInfoModel) error {
+	typeToLocalCerts, err := autocodesign.GetValidLocalCertificates(certificates)
+	if err != nil {
+		return err
+	}
+
+	certificateType, ok := autocodesign.CertificateTypeByDistribution[m.opts.ExportMethod]
+	if !ok {
+		panic(fmt.Sprintf("no valid certificate provided for distribution type: %s", m.opts.ExportMethod))
+	}
+
+	if len(typeToLocalCerts[certificateType]) == 0 {
+		if certificateType == appstoreconnect.IOSDevelopment {
+			return fmt.Errorf("no valid development type certificate uploaded")
+		}
+
+		m.logger.Warnf("no valid %s type certificate uploaded", certificateType)
+	}
+
+	return nil
+}
+
+func (m *Manager) registerTestDevices(credentials devportalservice.Credentials, devices []devportalservice.TestDevice) error {
+	platform, err := m.detailsProvider.Platform()
+	if err != nil {
+		return fmt.Errorf("failed to read platform from project: %s", err)
+	}
+
+	// No Team ID required for API key client
+	devPortalClient, err := m.devPortalClientFactory.Create(credentials, "")
+	if err != nil {
+		return err
+	}
+
+	if _, err = autocodesign.EnsureTestDevices(devPortalClient, devices, autocodesign.Platform(platform)); err != nil {
+		return fmt.Errorf("failed to ensure test devices: %w", err)
+	}
+
+	return nil
+}
+
+func (m *Manager) prepareCodeSigningWithBitrise(credentials devportalservice.Credentials, testDevices []devportalservice.TestDevice) (map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, error) {
+	fmt.Println()
+	m.logger.TDebugf("Analyzing project")
+	appLayout, err := m.detailsProvider.GetAppLayout(m.opts.SignUITests)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println()
+	m.logger.TDebugf("Downloading certificates")
+	certs, err := m.downloadCertificates()
+	if err != nil {
+		return nil, err
+	}
+
+	typeToLocalCerts, err := autocodesign.GetValidLocalCertificates(certs)
+	if err != nil {
+		return nil, err
+	}
+
+	var testDevicesToRegister []devportalservice.TestDevice
+	if m.opts.RegisterTestDevices {
+		testDevicesToRegister = testDevices
+	}
+
+	codesignAssetsByDistributionType, autoCodesignErr := m.prepareAutomaticAssets(credentials, appLayout, typeToLocalCerts, testDevicesToRegister)
+	if autoCodesignErr != nil {
+		if !m.fallbackProfileDownloader.IsAvailable() {
+			return nil, autoCodesignErr
+		}
+
+		m.logger.Println()
+		m.logger.Warnf("Automatic code signing failed: %s", autoCodesignErr)
+		m.logger.Println()
+		m.logger.Infof("Falling back to manually managed codesigning assets.")
+
+		codesignAssetsByDistributionType, err = m.prepareManualAssets(appLayout, typeToLocalCerts)
+		if err != nil {
+			m.logger.Println()
+			m.logger.Warnf("Manual code signing failed: %s", err)
+			return nil, autoCodesignErr
+		}
+	}
+
+	if m.assetWriter != nil {
+		if err := m.assetWriter.ForceCodesignAssets(m.opts.ExportMethod, codesignAssetsByDistributionType); err != nil {
+			return nil, fmt.Errorf("failed to force codesign settings: %s", err)
+		}
+	}
+
+	return codesignAssetsByDistributionType, nil
+}
+
+func (m *Manager) prepareAutomaticAssets(credentials devportalservice.Credentials, appLayout autocodesign.AppLayout, typeToLocalCerts autocodesign.LocalCertificates, testDevicesToRegister []devportalservice.TestDevice) (map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, error) {
+	devPortalClient, err := m.devPortalClientFactory.Create(credentials, m.opts.TeamID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := devPortalClient.Login(); err != nil {
+		return nil, fmt.Errorf("Developer Portal client login failed: %w", err)
+	}
+
+	manager := autocodesign.NewCodesignAssetManager(devPortalClient, m.assetInstaller, m.localCodeSignAssetManager)
+
+	codesignAssets, err := manager.EnsureCodesignAssets(appLayout, autocodesign.CodesignAssetsOpts{
+		DistributionType:        m.opts.ExportMethod,
+		TypeToLocalCertificates: typeToLocalCerts,
+		BitriseTestDevices:      testDevicesToRegister,
+		MinProfileValidityDays:  m.opts.MinDaysProfileValidity,
+		VerboseLog:              m.opts.IsVerboseLog,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to ensure code signing assets: %w", err)
+	}
+
+	return codesignAssets, nil
+}
+
+func (m *Manager) prepareManualAssets(appLayout autocodesign.AppLayout, typeToLocalCerts autocodesign.LocalCertificates) (map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, error) {
+	var certificates []certificateutil.CertificateInfoModel
+	for _, certs := range typeToLocalCerts {
+		certificates = append(certificates, certs...)
+	}
+
+	installedCerts, installedProfiles, err := m.installManualCodeSigningAssets(certificates)
+	if err != nil {
+		return nil, fmt.Errorf("failed to install manual code signing assets: %w", err)
+	}
+
+	assets, err := m.createCodeSignAssetMap(appLayout, installedCerts, installedProfiles)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create code signing asset map: %w", err)
+	}
+
+	return assets, nil
+}
+
+func (m *Manager) createCodeSignAssetMap(appLayout autocodesign.AppLayout, certificates []certificateutil.CertificateInfoModel, profiles []profileutil.ProvisioningProfileInfoModel) (map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, error) {
+	provider := exportoptionsgenerator.NewCodeSignGroupProvider(m.logger)
+
+	bundleIDEntitlementsMap := map[string]plistutil.PlistData{}
+	for bundleID, entitlements := range appLayout.EntitlementsByArchivableTargetBundleID {
+		bundleIDEntitlementsMap[bundleID] = plistutil.PlistData(entitlements)
+	}
+
+	distributionTypes := []autocodesign.DistributionType{m.opts.ExportMethod}
+	if m.opts.ExportMethod != autocodesign.Development {
+		// Add development distribution type if the selected export method is not development
+		distributionTypes = append(distributionTypes, autocodesign.Development)
+	}
+
+	assetsByDistributionType := map[autocodesign.DistributionType]autocodesign.AppCodesignAssets{}
+	for _, distributionType := range distributionTypes {
+		signingAssets, err := provider.DetermineCodesignGroup(certificates, profiles, nil, bundleIDEntitlementsMap, exportoptions.Method(distributionType), m.opts.TeamID, true)
+		if err != nil || signingAssets == nil {
+			if err == nil {
+				err = errors.New("no signing assets found")
+			}
+			if distributionType == m.opts.ExportMethod {
+				return nil, fmt.Errorf("failed to determine codesign group for %s distribution: %w", distributionType, err)
+			}
+			m.logger.Warnf("Failed to determine codesign group for %s distribution: %s, skipping", distributionType, err)
+			continue
+		}
+
+		bundleIDProfileInfoMap := signingAssets.BundleIDProfileMap()
+		bundleIDProfileMap := map[string]autocodesign.Profile{}
+		for bundleID, profileInfo := range bundleIDProfileInfoMap {
+			signingProfile, err := m.profileConverter.ProfileInfoToProfile(profileInfo)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert profile info: %w", err)
+			}
+			bundleIDProfileMap[bundleID] = signingProfile
+		}
+
+		assetsByDistributionType[distributionType] = autocodesign.AppCodesignAssets{
+			Certificate:                        signingAssets.Certificate(),
+			ArchivableTargetProfilesByBundleID: bundleIDProfileMap,
+		}
+	}
+
+	if len(appLayout.UITestTargetBundleIDs) > 0 && m.opts.ExportMethod == autocodesign.Development {
+		// Capabilities are not supported for UITest targets.
+		// Xcode managed signing uses Wildcard Provisioning Profiles for UITest target signing.
+
+		uiTestTargetBundleIDEntitlementsMap := map[string]plistutil.PlistData{}
+		for _, bundleID := range appLayout.UITestTargetBundleIDs {
+			// UITest targets do not have entitlements, so we use an empty plist.
+			uiTestTargetBundleIDEntitlementsMap[bundleID] = plistutil.PlistData{}
+		}
+
+		uiTestSigningAssets, err := provider.DetermineCodesignGroup(certificates, profiles, nil, uiTestTargetBundleIDEntitlementsMap, exportoptions.Method(autocodesign.Development), m.opts.TeamID, true)
+		if err != nil || uiTestSigningAssets == nil {
+			if err == nil {
+				err = errors.New("no signing assets found for UITest targets")
+			}
+			return nil, fmt.Errorf("failed to determine codesign group for UITest targets: %w", err)
+		}
+
+		bundleIDProfileInfoMap := uiTestSigningAssets.BundleIDProfileMap()
+		bundleIDProfileMap := map[string]autocodesign.Profile{}
+		for bundleID, profileInfo := range bundleIDProfileInfoMap {
+			signingProfile, err := m.profileConverter.ProfileInfoToProfile(profileInfo)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert profile info: %w", err)
+			}
+			bundleIDProfileMap[bundleID] = signingProfile
+		}
+
+		developmentAssets := assetsByDistributionType[autocodesign.Development]
+		developmentAssets.UITestTargetProfilesByBundleID = bundleIDProfileMap
+	}
+
+	return assetsByDistributionType, nil
+
+}
+
+func (m *Manager) installManualCodeSigningAssets(certificates []certificateutil.CertificateInfoModel) ([]certificateutil.CertificateInfoModel, []profileutil.ProvisioningProfileInfoModel, error) {
+	m.logger.Printf("Installing %d certificate(s):", len(certificates))
+	for _, cert := range certificates {
+		m.logger.Printf("- %s", cert.String())
+		// Empty passphrase provided, as already parsed certificate + private key
+		if err := m.assetInstaller.InstallCertificate(cert); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	profiles, err := m.fallbackProfileDownloader.GetProfiles()
+	if err != nil {
+		return certificates, nil, fmt.Errorf("failed to fetch profiles: %w", err)
+	}
+
+	m.logger.Printf("Installing %d profile(s)...", len(profiles))
+	var installedProfiles []profileutil.ProvisioningProfileInfoModel
+	for _, profile := range profiles {
+		m.logger.Printf("- UUID: %s, Name: %s, Export type: %s, Team: %s, Expiry: %s", profile.Info.UUID, profile.Info.Name, profile.Info.ExportType, profile.Info.TeamID, profile.Info.ExpirationDate)
+		if err := m.assetInstaller.InstallProfile(profile.Profile); err != nil {
+			return certificates, installedProfiles, fmt.Errorf("failed to install profile: %w", err)
+		}
+
+		installedProfiles = append(installedProfiles, profile.Info)
+	}
+
+	return certificates, installedProfiles, nil
+}
