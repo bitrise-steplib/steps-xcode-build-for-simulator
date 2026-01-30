@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/bitrise-io/go-steputils/output"
@@ -13,7 +14,6 @@ import (
 	"github.com/bitrise-io/go-utils/errorutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
-	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	v2pathutil "github.com/bitrise-io/go-utils/v2/pathutil"
@@ -104,7 +104,7 @@ func (b BuildForSimulatorStep) ProcessConfig() (RunOpts, error) {
 	if strings.TrimSpace(config.XCConfigContent) == "" {
 		config.XCConfigContent = ""
 	}
-	if sliceutil.IsStringInSlice("-xcconfig", additionalOptions) &&
+	if slices.Contains(additionalOptions, "-xcconfig") &&
 		config.XCConfigContent != "" {
 		return RunOpts{}, fmt.Errorf("`-xcconfig` option found in `xcodebuild_options`, please clear `xcconfig_content` input as can not set both")
 	}
@@ -343,7 +343,7 @@ func copyArtifactsToDeployDir(archivePath string, deployDir string) ([]string, e
 			log.Donef("Copy: $BITRISE_DEPLOY_DIR/%s", d.Name())
 
 			copiedArtifacts = append(copiedArtifacts, destination)
-			
+
 			err = ziputil.ZipDir(destination, destination+".zip", false)
 			if err != nil {
 				log.Errorf("Failed to zip %s: %s", destination, err)
